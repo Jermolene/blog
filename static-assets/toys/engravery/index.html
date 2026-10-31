@@ -105,6 +105,10 @@ button,.filebtn{
   color:var(--ink);cursor:pointer;text-align:center;
 }
 button:hover,.filebtn:hover{background:var(--ink);color:var(--paper)}
+.dl{position:relative}
+.dl>summary{list-style:none;font-family:'Archivo',sans-serif;font-weight:500;font-size:14px;padding:10px 14px;border:1px solid var(--ink);background:var(--ink);color:var(--paper);cursor:pointer;text-align:center}
+.dl>summary::-webkit-details-marker{display:none}
+.dlmenu{position:absolute;z-index:5;bottom:calc(100% + 4px);left:0;right:0;display:flex;flex-direction:column;gap:4px}
 button.primary{background:var(--ink);color:var(--paper)}
 button.primary:hover{background:var(--accent);border-color:var(--accent)}
 button:focus-visible,.filebtn:focus-within,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
@@ -200,8 +204,10 @@ input,textarea{-webkit-user-select:text;user-select:text}
       </div>
     </fieldset>
 
-    <button class="primary" id="download">Download PNG</button>
-    <button id="downloadSvg">Download SVG</button>
+    <details class="dl"><summary>Download ▾</summary><div class="dlmenu">
+      <button id="download">PNG</button>
+      <button id="downloadSvg">SVG</button>
+    </div></details>
   </aside>
 </main>
 
@@ -695,6 +701,9 @@ function saveFile(filename, type, data) {
   setTimeout(() => URL.revokeObjectURL(a.href), 10000);
 }
 
+// the Download menu closes once a format is picked, or on a tap elsewhere
+document.querySelectorAll('details.dl button').forEach(b=>b.addEventListener('click',()=>b.closest('details').open=false));
+document.addEventListener('pointerdown',e=>document.querySelectorAll('details.dl[open]').forEach(d=>{if(!d.contains(e.target))d.open=false}));
 $("downloadSvg").addEventListener("click", () => {
   // Generic MIME type rather than image/svg+xml: iOS maps SVG to an image
   // UTI, making the share sheet offer "Save Image" (to Photos, which cannot

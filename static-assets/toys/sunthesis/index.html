@@ -53,6 +53,11 @@ h1{font:400 34px/1 var(--f-display);margin:0;letter-spacing:.005em}
 h1 i{color:var(--ember)}
 .lede{color:var(--muted);margin:8px 0 16px;line-height:1.45;font-size:13px}
 .row{display:flex;flex-wrap:wrap;gap:6px}
+.dl{position:relative;display:inline-block}
+.dl>summary{list-style:none;font:500 13px var(--f-body);color:var(--text);background:#1a1e2b;border:1px solid var(--line);border-radius:8px;padding:8px 11px;cursor:pointer;letter-spacing:normal;text-transform:none;display:block}
+details.dl>summary::after,details.dl[open]>summary::after{content:none}
+.dl>summary::-webkit-details-marker{display:none}
+.dlmenu{position:absolute;z-index:20;top:calc(100% + 4px);left:0;display:flex;flex-direction:column;gap:4px;min-width:100%;white-space:nowrap}
 button.b{font:500 13px var(--f-body);color:var(--text);background:#1a1e2b;border:1px solid var(--line);border-radius:8px;padding:8px 11px;cursor:pointer}
 button.b:hover{border-color:#3a4258}
 button.b.primary{background:var(--ember);border-color:var(--ember);color:#1b0e04}
@@ -125,8 +130,10 @@ input,textarea{-webkit-user-select:text;user-select:text}
     <div class="row">
       <button class="b primary" id="randBtn">Randomise all</button>
       <button class="b" id="resetBtn">Reset</button>
-      <button class="b" id="pngBtn">Export PNG</button>
-      <button class="b" id="hdrBtn" title="A JPEG with an HDR gain map: brighter-than-white highlights on HDR screens, an ordinary JPEG everywhere else">Export HDR JPEG</button>
+      <details class="dl"><summary>Download ▾</summary><div class="dlmenu">
+        <button class="b" id="pngBtn">PNG</button>
+        <button class="b" id="hdrBtn" title="A JPEG with an HDR gain map: brighter-than-white highlights on HDR screens, an ordinary JPEG everywhere else">HDR JPEG</button>
+      </div></details>
       <button class="b violet" id="exploreBtn">Explore</button>
     </div>
     <label class="keep" for="keepSunset"><input type="checkbox" id="keepSunset" checked> Keep it sunset-like <span>Randomise and Explore skip results that read as daytime, night, a colour cast or a flat grey sky</span></label>
@@ -2126,6 +2133,9 @@ $('animBtn').onclick=()=>{ animating=!animating; $('animBtn').setAttribute('aria
 let last=0;
 function loop(t){ if(!animating){ requestRender(); return; } if(last&&t) time+=Math.min(0.1,(t-last)/1000); last=t||0; pass=0; render(); requestAnimationFrame(loop); }
 $('pngBtn').onclick=exportPNG;
+// the Download menu closes once a format is picked, or on a tap elsewhere
+document.querySelectorAll('details.dl button').forEach(b=>b.addEventListener('click',()=>b.closest('details').open=false));
+document.addEventListener('pointerdown',e=>document.querySelectorAll('details.dl[open]').forEach(d=>{if(!d.contains(e.target))d.open=false}));
 $('hdrBtn').onclick=exportHDR;
 $('shotClose').onclick=()=>{ $('shot').hidden=true; };
 
@@ -2182,7 +2192,7 @@ async function exportPNG(){
     const {px,W,H}=renderExportPixels(false);
     const blob=await blobOf(sdrCanvas(px,W,H),'image/png');
     await offerFile(blob,'sunthesis.png','Long-press or right-click the picture to save it.');
-  }catch(e){ toast('Export failed: '+(e&&e.message||e)); }
+  }catch(e){ toast('Download failed: '+(e&&e.message||e)); }
   exporting=false;
 }
 async function exportHDR(){

@@ -10,7 +10,8 @@ conventions shared by the shader and the SVG exporter, and known gaps.
 
 ## Owner's conventions
 - Generative single-page apps always have Randomise, Reset and an 8-way explorer (3×3 grid, centre =
-  current, 8 mutated neighbours; click a neighbour to adopt it, centre to reroll). Keep these.
+  current, 8 mutated neighbours; click a neighbour to adopt it, the centre to leave explore with it, and
+  New neighbours to reroll). Keep these.
 - Keep it one self-contained HTML file.
 - Communication: concise and technically precise; no hedged padding.
 
