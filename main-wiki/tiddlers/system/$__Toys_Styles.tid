@@ -57,3 +57,7 @@ title: $:/Toys/Styles
 		padding-top: env(safe-area-inset-top, 0px);
 	}
 }
+
+.jermolene-toy-categories {
+	font-weight: bold;
+}

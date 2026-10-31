@@ -15,6 +15,7 @@ Each toy's notes are in its `CLAUDE.md` or `HANDOVER.md`. Read them before makin
 | `flowing-field` | Edited in place | Notes and `tools/render.mjs`, a headless render check. Its history, from its own repository, is merged into this one |
 | `animal-island`, `trundle-world` | Edited in place | Notes and checks |
 | `fractaliser`, `lala-yala`, `rug-addict` | Edited in place | Handover notes |
+| `radialator` | Edited in place | Notes, the reference image it reproduces and its render checks (`tools/`, Python and Playwright) |
 | `vectorious` | Edited in place | Handover notes, test images and the Python tracing experiments behind it |
 
 A built toy starts with a comment naming the script that builds it. Don't edit it directly: change the source here, rebuild, and commit both.

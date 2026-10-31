@@ -194,6 +194,7 @@ const closeups = {
 	"toys/mimic": {clip: {x: 30, y: 300, width: 500, height: 500}},
 	"toys/over-underiser": {clip: {x: 290, y: 90, width: 620, height: 620}},
 	"toys/quizbuzz": {clip: {x: 160, y: 0, width: 600, height: 600}},
+	"toys/radialator": {clip: {x: 150, y: 173, width: 560, height: 560}},
 	"toys/rug-addict": {clip: {x: 155, y: 250, width: 315, height: 315}},
 	"toys/spotty-sphericle": {clip: {x: 110, y: 90, width: 590, height: 590}},
 	"toys/sunthesis": {clip: {x: 140, y: 110, width: 580, height: 580}},

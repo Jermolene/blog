@@ -63,7 +63,7 @@ const CARD = {width: 1200, height: 630},
 	// jermolene-primary in $:/_CustomPalette
 	DEFAULT_ACCENT = "#5c59a7";
 
-const toyKinds = {games: "Game", trifles: "Trifle", tools: "Tool"};
+const toyKinds = {games: "Game", trifles: "Trifle", "kids-games": "Kids game", tools: "Tool"};
 
 // The card is laid out by the page below, which is given the card as JSON. A
 // square picture sits to the right of the text, and a wide one across the top

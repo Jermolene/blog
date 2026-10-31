@@ -36,7 +36,7 @@ SITE_HEAD = ('<!doctype html><!-- Built by toys-src/meadow-games/tools/build.py 
 <title>Meadow Games</title>
 <meta name="description" content="Five tap-only 3D games for toddlers with a herd of cows, horses, foxes and friends: peekaboo, all fall down, bedtime in the barn, find the same and pairs">
 <meta name="toy-tagline" content="Five tap-only 3D games for toddlers in a meadow full of animals">
-<meta name="toy-category" content="games">
+<meta name="toy-category" content="kids-games">
 ''')
 
 def build_site():

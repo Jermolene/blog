@@ -1,5 +1,5 @@
 caption: Toys
-description: Games, trifles and tools that run in your browser and work offline
+description: Games, trifles, kids games and tools that run in your browser and work offline
 social-closeup: toys/knottery toys/trundle-world toys/marblelous toys/catflap
 tags: page
 title: Toys
@@ -46,14 +46,22 @@ title: Toys
 
 //Interactive things//
 
-!! Games
+@@.jermolene-toy-categories
+<a href="#games">Games</a> · <a href="#trifles">Trifles</a> · <a href="#kids-games">Kids games</a> · <a href="#tools">Tools</a>
+@@
+
+!! <span id="games">Games</span>
 
 <<toy-listing games>>
 
-!! Trifles
+!! <span id="trifles">Trifles</span>
 
 <<toy-listing trifles>>
 
-!! Tools
+!! <span id="kids-games">Kids games</span>
+
+<<toy-listing kids-games>>
+
+!! <span id="tools">Tools</span>
 
 <<toy-listing tools>>

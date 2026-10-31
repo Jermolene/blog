@@ -7,7 +7,7 @@ read from the toy's own HTML `<title>` and `<meta>` tags. The caption comes from
 `<meta name="toy-title">`, falling back to `og:title` and then `<title>`; the
 description from `<meta name="toy-description">`, falling back to the standard
 `description` and then `og:description`; and its category, one of `games`,
-`trifles` or `tools`, from `<meta name="toy-category">`. The toy is therefore
+`trifles`, `kids-games` or `tools`, from `<meta name="toy-category">`. The toy is therefore
 the single source of truth for its own listing: adding, renaming or
 re-describing a toy automatically updates the index at build time.
 
@@ -28,7 +28,7 @@ const fs = require("fs"),
 	path = require("path");
 
 // The categories the toys index is divided into, in the order it lists them
-const categories = ["games","trifles","tools"];
+const categories = ["games","trifles","kids-games","tools"];
 
 const rootDir = __dirname,
 	toysDir = path.join(rootDir,"static-assets","toys"),

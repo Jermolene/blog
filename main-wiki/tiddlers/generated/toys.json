@@ -6,7 +6,7 @@
 		"url": "/toys/animal-island/",
 		"tags": "toy",
 		"text": "",
-		"category": "games",
+		"category": "kids-games",
 		"tagline": "Tap the animals on a little 3D island to hear their names and noises",
 		"theme-color": "#5fbdea",
 		"screenshot": "/screenshots/toys/animal-island.webp"
@@ -138,7 +138,7 @@
 		"url": "/toys/lala-yala/",
 		"tags": "toy",
 		"text": "",
-		"category": "games",
+		"category": "kids-games",
 		"tagline": "Four tap-only games for toddlers, starring two grey cats",
 		"theme-color": "#8fd6f5",
 		"screenshot": "/screenshots/toys/lala-yala.webp"
@@ -174,7 +174,7 @@
 		"url": "/toys/meadow-games/",
 		"tags": "toy",
 		"text": "",
-		"category": "games",
+		"category": "kids-games",
 		"tagline": "Five tap-only 3D games for toddlers in a meadow full of animals",
 		"theme-color": "#bfe3f2",
 		"screenshot": "/screenshots/toys/meadow-games.webp"
@@ -214,6 +214,18 @@
 		"tagline": "A family quiz show: a 1960s TV studio on the big screen and a buzzer on every phone",
 		"theme-color": "#1d1411",
 		"screenshot": "/screenshots/toys/quizbuzz.webp"
+	},
+	{
+		"title": "Toys/radialator",
+		"caption": "Radialator",
+		"description": "An op art explorer of radial parity patterns: rings of overlapping shapes, coloured black or white by how many of them cover each point, crossed with spokes and rings. Tweak the sliders, randomise, explore nearby patterns and download them as SVG",
+		"url": "/toys/radialator/",
+		"tags": "toy",
+		"text": "",
+		"category": "trifles",
+		"tagline": "Rings of overlapping shapes flip black and white into dizzying op art rosettes",
+		"theme-color": "#f3f3f1",
+		"screenshot": "/screenshots/toys/radialator.webp"
 	},
 	{
 		"title": "Toys/rug-addict",
@@ -284,7 +296,7 @@
 		"url": "/toys/trundle-world/",
 		"tags": "toy",
 		"text": "",
-		"category": "games",
+		"category": "kids-games",
 		"tagline": "A little 3D island for small children to poke at",
 		"theme-color": "#7cc8ff",
 		"screenshot": "/screenshots/toys/trundle-world.webp"
