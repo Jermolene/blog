@@ -196,3 +196,8 @@ The alley bear walks and sits on the divider between the lane and its neighbour:
   - The invite screen ("Invite phones") shows the join code and a live camera preview that reads reply codes by itself, front camera by default with a "Use back camera" switch (`bowling-bear.cam`). When a phone connects, a fresh code appears for the next one and the status says who's in. "Scan their reply" is gone; pasting a reply still works. Leaving the screen turns the camera off.
   - Codes are `BB4`. The in-game scanner is the shared full-screen one.
   - The network tests `test/link.mjs` and `test/rejoin.mjs` are replaced by `toys-src/shared/test/lan.mjs`, which covers all three games.
+
+## Dances don't hold up play, and a bigger bear (2026-10-31)
+
+- Round the table, `react()` no longer waits for the dance: play carries on and `stopDancing()` cuts it short when the next ball is launched or the lane swings to another seat. At the end of the game the results appear 1.5 s into the dance. The alley already worked this way (`nb.cancel()` on the next ball).
+- The bear is bigger: 1.45 m nose to tail round the table (was 0.95), its home 1.45 lane units off the centre line (was 1.25) to keep it off the lane, and 1.6 m in the alley (was 1.0).

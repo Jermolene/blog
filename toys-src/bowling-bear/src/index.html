@@ -1058,7 +1058,7 @@ function nbFit(P){
 }
 // the bear walks and sits on the divider between this lane and the next, two cappings side by side whose tops are at
 // 0.075 and which span 0.767-1.083 from the lane's centre; the floor beyond is lower
-makeBear(1.0,P=>Math.abs(P.x)<1.1?0.075:-0.02).then(b=>{nb=b;nb.fit=nbFit;nb.pos.copy(nbAt(NB_HOME));nb.heading=NB_FACE_HOME;scene.add(nb.root);nbHome();}).catch(e=>console.error('bear load failed',e));
+makeBear(1.6,P=>Math.abs(P.x)<1.1?0.075:-0.02).then(b=>{nb=b;nb.fit=nbFit;nb.pos.copy(nbAt(NB_HOME));nb.heading=NB_FACE_HOME;scene.add(nb.root);nbHome();}).catch(e=>console.error('bear load failed',e));
 
 // snapshot → meshes (sim x is mirrored so screen-right is +x)
 const qTmp=new THREE.Quaternion(),axTmp=new THREE.Vector3();
@@ -2044,7 +2044,7 @@ async function initTable(renderer, onLeave) {
   }
   function bearHome(seat) {
     const side = bearSide(seat);
-    bear.go(() => laneToWorld(side * 1.25, -0.25, 0), { speed: 3.6, idle: 'Sitting_Idle_02', face: () => laneForwardHeading() + side * 0.5 });
+    bear.go(() => laneToWorld(side * 1.45, -0.25, 0), { speed: 3.6, idle: 'Sitting_Idle_02', face: () => laneForwardHeading() + side * 0.5 });
     return side;
   }
 
@@ -2083,7 +2083,8 @@ async function initTable(renderer, onLeave) {
     const tie = ranked.length > 1 && finalTotal(ranked[0]) === finalTotal(ranked[1]);
     toast(ranked.length === 1 ? `${finalTotal(w)} points` : tie ? 'Tie game!' : `${w.name} wins!`, { seat: w.seat, dur: 2.2 });
     sfx.roar();
-    await bearDance('end'); guard(id);
+    bearDance('end');
+    await wait(1.5); guard(id);
     showResults();
   }
   async function turnTo_(p, id, quiet = false) {
@@ -2091,6 +2092,7 @@ async function initTable(renderer, onLeave) {
     const g = seatGeom(p.seat);
     if (game.seat !== p.seat) {
       game.seat = p.seat;
+      stopDancing();
       bearHome(p.seat);
       await swingTo(g.theta); guard(id);
     } else bearHome(p.seat);
@@ -2139,6 +2141,7 @@ async function initTable(renderer, onLeave) {
     } else shot = await aiThrow(id);
     guard(id);
     const beforeCount = standingPins().length;
+    stopDancing();
     launchBall(shot.x, shot.z, shot.vx, shot.vz, shot.spin);
     // bear chases alongside
     const side = bearSide(p.seat);
@@ -2173,9 +2176,10 @@ async function initTable(renderer, onLeave) {
     } else {
       toast(`${knocked} pin${knocked === 1 ? '' : 's'}`, { small: true, seat: p.seat, dur: 1.1 });
     }
-    await bearDance(res, knocked); guard(id);
-    bearHome(p.seat);
+    // the bear dances while play carries on; the next ball or seat cuts it short (stopDancing)
+    bearDance(res, knocked).then(() => { if (id === session) bearHome(p.seat); });
   }
+  function stopDancing() { if (bear.busy) bear.cancel?.(); }
   async function sweep(id, all = false) {
     const down = pins.filter(p => p.active && (all || pinIsDown(p)));
     const t0 = gameTime;
@@ -2243,7 +2247,7 @@ async function initTable(renderer, onLeave) {
   try { await Promise.race([document.fonts.load('40px "Bowlby One SC"'), new Promise(r => setTimeout(r, 2500))]); } catch (e) {}
   buildLane(); buildPins(); buildBall();
   lane.add(ring);
-  try { bear = await makeBear(0.95, bearGround); } catch (e) {
+  try { bear = await makeBear(1.45, bearGround); } catch (e) {
     console.error('bear load failed', e);
     bear = { root: new THREE.Group(), pos: new THREE.Vector3(), go() {}, react: () => Promise.resolve(), dance: () => Promise.resolve(), update() {}, play() {} };
   }
