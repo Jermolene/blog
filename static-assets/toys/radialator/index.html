@@ -34,7 +34,9 @@ header{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:baseline;justify
 h1{font-family:var(--display);font-weight:900;font-size:clamp(28px,5vw,44px);letter-spacing:.01em;margin:0;line-height:1;text-transform:uppercase;text-wrap:balance}
 .sub{color:var(--muted);margin:0;max-width:52ch}
 .stage{position:relative;width:100%;max-width:min(100%,calc(100vh - 140px));aspect-ratio:1;justify-self:center;min-width:0;min-height:0;overflow:hidden}
-#main{position:absolute;inset:0;width:100%;height:100%;display:block;border-radius:2px}
+#main{position:absolute;inset:0;width:100%;height:100%;display:block;border-radius:2px;touch-action:pan-y;cursor:zoom-in}
+.stage.zoomed #main{touch-action:none;cursor:grab}
+.stage.zoomed #main:active{cursor:grabbing}
 .grid{position:absolute;inset:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr));gap:6px}
 .grid .cell{width:100%;height:100%;min-width:0;min-height:0;display:block;background:center/contain no-repeat;cursor:pointer;border-radius:2px;outline:1px solid var(--line);transition:transform .12s}
 .grid .cell:hover{transform:scale(.97)}
@@ -63,7 +65,7 @@ select{width:100%;font:13px var(--body);padding:6px;border-radius:3px;border:1px
 <div class="wrap">
   <header>
     <h1>Radialator</h1>
-    <p class="sub">Rings of overlapping shapes, filled black or white by how many of them cover each point. Each cell is black or white depending on whether an odd or even number of shapes covers it.</p>
+    <p class="sub">Rings of overlapping shapes, filled black or white by how many of them cover each point. Each cell is black or white depending on whether an odd or even number of shapes covers it. Pinch or scroll to zoom in; double-tap to see it all.</p>
   </header>
   <div class="stage" id="stage">
     <canvas id="main" aria-label="Op art pattern"></canvas>
@@ -129,7 +131,7 @@ const glc=document.createElement('canvas');
 const gl=glc.getContext('webgl',{preserveDrawingBuffer:true,antialias:false});
 const FS=`precision highp float;
 uniform vec2 uRes;uniform float uHub,uInv,uWarp,uRim,uNotch,uPx,uLine,uN,uD,uR,uP,uAsp,uSpin,uTilt,uTwist,uRings,uSectors,uLayers,uLS,uPhase,uExtent,uClip;
-uniform vec3 uInk,uPaper;
+uniform vec3 uInk,uPaper;uniform vec2 uPan;uniform float uZoom;
 mat2 rot(float a){float c=cos(a),s=sin(a);return mat2(c,s,-s,c);}
 float sampleAt(vec2 p){
   vec2 p0=p;float rad0=length(p);
@@ -172,10 +174,10 @@ float sampleAt(vec2 p){
   return par;
 }
 void main(){
-  float m=min(uRes.x,uRes.y)*.5;float k=uExtent*1.0089/m;
+  float m=min(uRes.x,uRes.y)*.5;float k=uExtent*1.0089/m/uZoom;
   vec2 f=gl_FragCoord.xy-uRes*.5;
-  float v=sampleAt((f+vec2(.125,.375))*k)+sampleAt((f+vec2(-.375,.125))*k)
-         +sampleAt((f+vec2(-.125,-.375))*k)+sampleAt((f+vec2(.375,-.125))*k);
+  float v=sampleAt((f+vec2(.125,.375))*k+uPan)+sampleAt((f+vec2(-.375,.125))*k+uPan)
+         +sampleAt((f+vec2(-.125,-.375))*k+uPan)+sampleAt((f+vec2(.375,-.125))*k+uPan);
   gl_FragColor=vec4(mix(uPaper,uInk,v*.25),1.);
 }`;
 let prog,U={};
@@ -187,7 +189,7 @@ function initGL(){
   prog=gl.createProgram();gl.attachShader(prog,vs);gl.attachShader(prog,fs);gl.linkProgram(prog);gl.useProgram(prog);
   const b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
   const loc=gl.getAttribLocation(prog,'p');gl.enableVertexAttribArray(loc);gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
-  'uRes uHub uInv uWarp uRim uNotch uPx uLine uN uD uR uP uAsp uSpin uTilt uTwist uRings uSectors uLayers uLS uPhase uExtent uClip uInk uPaper'.split(' ').forEach(n=>U[n]=gl.getUniformLocation(prog,n));
+  'uRes uHub uInv uWarp uRim uNotch uPx uLine uN uD uR uP uAsp uSpin uTilt uTwist uRings uSectors uLayers uLS uPhase uExtent uClip uInk uPaper uPan uZoom'.split(' ').forEach(n=>U[n]=gl.getUniformLocation(prog,n));
 }
 function extent(p){
   if(p.clip==3)return p.rim;
@@ -195,8 +197,10 @@ function extent(p){
   for(let l=0;l<p.layers;l++){const s=Math.pow(p.layerScale,l);e=Math.max(e,p.offset*s+p.radius*s*reach*Math.max(p.aspect,1));}
   return Math.max(e,.05);
 }
-function render(p,target,size,phase=0){
+// view: zoom and pan (world units, y up) of the main canvas; explore tiles and the SVG always show the whole pattern
+function render(p,target,size,phase=0,view=null){
   glc.width=glc.height=size;gl.viewport(0,0,size,size);
+  gl.uniform1f(U.uZoom,view?view.z:1);gl.uniform2f(U.uPan,view?view.x:0,view?view.y:0);
   gl.uniform2f(U.uRes,size,size);
   gl.uniform1f(U.uN,p.count);gl.uniform1f(U.uD,p.offset);gl.uniform1f(U.uR,p.radius);gl.uniform1f(U.uP,p.shape);
   gl.uniform1f(U.uAsp,p.aspect);gl.uniform1f(U.uSpin,p.spin);gl.uniform1f(U.uTilt,p.tilt);gl.uniform1f(U.uTwist,p.twist);
@@ -232,7 +236,8 @@ function push(){const now=performance.now();if(now-lastPush<400)return;lastPush=
 
 function mainSize(){const r=main.getBoundingClientRect();return Math.min(2048,Math.round(Math.max(200,r.width)*Math.min(devicePixelRatio||1,2)))}
 let phase=0,last=0,raf=0;
-function drawMain(){render(P,main,mainSize(),phase)}
+const view={x:0,y:0,z:1};
+function drawMain(){render(P,main,mainSize(),phase,view);$('stage').classList.toggle('zoomed',view.z>1.001)}
 function loop(t){
   raf=0;if(!P.speed||exploring)return;
   const dt=last?Math.min(.05,(t-last)/1000):0;last=t;phase+=P.speed*dt*.5;drawMain();raf=requestAnimationFrame(loop);
@@ -275,6 +280,35 @@ $('explore').addEventListener('click',()=>{
   if(exploring)buildGrid(true);else changed();
 });
 
+// --- zoom: pinch or scroll to zoom, drag to pan once zoomed, double-click or double-tap to see it all ---
+const ptrs=new Map();let pinch=null,drawQueued=false,lastTap=0;
+function queueDraw(){if(!drawQueued){drawQueued=true;requestAnimationFrame(()=>{drawQueued=false;if(!exploring)drawMain()})}}
+function toWorld(cx,cy){const r=main.getBoundingClientRect(),k=extent(P)*1.0089/(Math.min(r.width,r.height)/2)/view.z;
+  return{x:(cx-r.left-r.width/2)*k+view.x,y:-(cy-r.top-r.height/2)*k+view.y}}
+function zoomAt(cx,cy,f){const b=toWorld(cx,cy);view.z=Math.min(16,Math.max(1,view.z*f));const a=toWorld(cx,cy);
+  view.x+=b.x-a.x;view.y+=b.y-a.y;if(view.z<=1.001){view.z=1;view.x=view.y=0}queueDraw()}
+function resetView(){view.x=view.y=0;view.z=1;queueDraw()}
+main.addEventListener('pointerdown',e=>{
+  ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(ptrs.size===2){const[a,b]=[...ptrs.values()];pinch={d:Math.hypot(a.x-b.x,a.y-b.y)||1,mx:(a.x+b.x)/2,my:(a.y+b.y)/2}}
+  if(ptrs.size===2||view.z>1)main.setPointerCapture(e.pointerId);
+});
+main.addEventListener('pointermove',e=>{
+  const p=ptrs.get(e.pointerId);if(!p)return;
+  if(ptrs.size===1&&view.z>1){const a=toWorld(p.x,p.y),b=toWorld(e.clientX,e.clientY);view.x+=a.x-b.x;view.y+=a.y-b.y;queueDraw()}
+  p.x=e.clientX;p.y=e.clientY;
+  if(ptrs.size>=2&&pinch){const[a,b]=[...ptrs.values()],mx=(a.x+b.x)/2,my=(a.y+b.y)/2,d=Math.hypot(a.x-b.x,a.y-b.y)||1;
+    const k=extent(P)*1.0089/(Math.min(main.clientWidth,main.clientHeight)/2)/view.z;
+    view.x-=(mx-pinch.mx)*k;view.y+=(my-pinch.my)*k;zoomAt(mx,my,d/pinch.d);pinch={d,mx,my}}
+});
+function ptrUp(e){
+  if(!ptrs.has(e.pointerId))return;ptrs.delete(e.pointerId);if(ptrs.size<2)pinch=null;
+  if(e.type==='pointerup'&&e.pointerType!=='mouse'&&!ptrs.size){if(e.timeStamp-lastTap<350){resetView();lastTap=0}else lastTap=e.timeStamp}
+}
+main.addEventListener('pointerup',ptrUp);main.addEventListener('pointercancel',ptrUp);
+main.addEventListener('dblclick',e=>{e.preventDefault();resetView()});
+main.addEventListener('wheel',e=>{e.preventDefault();zoomAt(e.clientX,e.clientY,Math.exp(-e.deltaY*(e.ctrlKey?.01:.0015)))},{passive:false});
+
 // --- randomise / reset / undo ---
 const R=(a,b)=>a+Math.random()*(b-a);
 function randomise(){
@@ -292,7 +326,7 @@ function randomise(){
   return q;
 }
 $('rand').addEventListener('click',()=>{lastPush=0;push();P=randomise();syncUI();changed()});
-$('reset').addEventListener('click',()=>{lastPush=0;push();P={...DEFAULTS};phase=0;syncUI();changed()});
+$('reset').addEventListener('click',()=>{lastPush=0;push();P={...DEFAULTS};phase=0;view.x=view.y=0;view.z=1;syncUI();changed()});
 $('undo').addEventListener('click',()=>{if(!history.length)return;P=history.pop();syncUI();changed()});
 
 // --- SVG export: same geometry as the shader, as one even-odd path ---
