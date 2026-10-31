@@ -17,7 +17,7 @@ Published as a claude.ai artifact: https://claude.ai/artifact/HdGAF283eXLtxrYgBg
 ## Files
 
 ```
-src/bowling-bear.src.html   the source: HTML, CSS and an ES-module script; contains the placeholder __BEAR_B64__
+handover/bowling-bear.src.html   the source at handover (was src/): HTML, CSS and an ES-module script; contains the placeholder __BEAR_B64__
 assets/bear.glb             the slimmed bear (~0.5 MB): 12 animations, meshopt, quantised, 512px webp textures
 assets/bear-original/       the original Sketchfab glTF (13 MB, 80 animations) and license.txt
 tools/slim.mjs              glTF-Transform pipeline: original glTF -> assets/bear.glb (KEEP = the animation whitelist)
@@ -144,7 +144,7 @@ This work is based on "Realistic Animated Bear 3D Model" (https://sketchfab.com/
 
 ## Merged into jermolene.com (2026-10-25)
 
-This game is now the "Play round this device" mode of `static-assets/toys/bowling-bear/index.html` in the blog repo, which is the file to edit. `src/` and `dist/` here are the artifact version at handover and are no longer kept in step. The page also keeps the earlier LAN game (host/join by QR code, practise alone) with its bowler's-eye view and its own pin simulation.
+This game is now the "Play round this device" mode of the toy at `static-assets/toys/bowling-bear/index.html` in the blog repo. Since 2026-10-30 that file is built from `src/index.html` here by `toys-src/build.mjs` (see the last section); before then it was edited in place. `handover/bowling-bear.src.html` (once `src/`) and `dist/` are the artifact version at handover and are no longer kept in step. The page also keeps the earlier LAN game (host/join by QR code, practise alone) with its bowler's-eye view and its own pin simulation.
 
 What changed in the merge:
 - **One page, one renderer.** The table game lives in `initTable(renderer, onLeave)`, called the first time the table is opened. It loads cannon-es by dynamic import, builds everything inside that closure and returns `enter()` and `frame(t)`. The alley's `setAnimationLoop` calls `table.frame()` while `inTable` is set. Its DOM ids are prefixed `t-` and its CSS is scoped to `#table`; the lobby's generic rules are scoped to `:is(#lobby,#scanner)`.
@@ -152,7 +152,7 @@ What changed in the merge:
 - **Input.** The drag-and-flick is gone. The table uses the alley's swipe, measured in lane-local metres: a swipe starts anywhere on the bowler's half of the lane; its start across the lane sets the ball's line; forward speed over the last 90 ms sets the pace (`1.8 + v × 0.5`, clamped 2.4–8.5 m/s); the slant of the whole swipe nudges the aim (±0.14 rad); and curving the end hooks (`spin = (tail − chord) × 2.2`). The finger trail is drawn on the alley's `#trail` canvas.
 - **Computer players** slide the ball to their line and bowl, with no pull back.
 - **No chase camera** and no Follow ball setting. The menu and setup screen have Leave/Back buttons that return to the lobby. Prefs are stored under `bowling-bear.table`.
-- **The bear** is shared code: `makeBear(length, groundY)` parses a fresh copy from `bear-model.js` (`window.BOWLING_BEAR_GLB`; regenerate with `python3 tools/build_toy_model.py <blog>/static-assets/toys/bowling-bear/bear-model.js`). The table uses it at 0.95 m with `bearGround()` for climbing onto the lane. The alley has a 1 m bear beside the lane that runs alongside the ball and reacts to strikes, spares and gutters. To give it time, the end of each roll is held in view for 1.8 s (`hold`) before the camera pulls back.
+- **The bear** is shared code: `makeBear(length, groundY)` parses a fresh copy from `bear-model.js` (`window.BOWLING_BEAR_GLB`; now `src/bear-model.js`, inlined by the build; regenerate with `python3 tools/build_toy_model.py src/bear-model.js`). The table uses it at 0.95 m with `bearGround()` for climbing onto the lane. The alley has a 1 m bear beside the lane that runs alongside the ball and reacts to strikes, spares and gutters. To give it time, the end of each roll is held in view for 1.8 s (`hold`) before the camera pulls back.
 
 The test harness in `test/` targets `dist/`; the toy's table internals are on `window.__bbTable`.
 
@@ -187,3 +187,12 @@ The alley (host and join, practise alone) had no sound at all; only the table di
 ## The alley bear on the divider (2026-10-30)
 
 The alley bear walks and sits on the divider between the lane and its neighbour: two cappings side by side, tops at y = 0.075, spanning 0.767–1.083 from the lane's centre. Its ground function said 0.075 only within 0.95, so at home (`NB_X` = −1.0) and running alongside it was set 9.5 cm low and sank into the divider; it now says 0.075 within 1.1.
+
+## Built from source, with the shared LAN code (2026-10-30)
+
+- **Build.** `src/index.html` is the source; `node build.mjs bowling-bear` in `toys-src` writes the toy (see `toys-src/README.md`). The published page is one file: the bear model, three.js 0.160, cannon-es 0.20 (the table's `import('cannon-es')` is bundled in too), qrcode-generator, jsQR and the shared LAN code are all inlined, so nothing comes from a CDN and it works offline and from disk. `window.__n` exposes `net`, `invite`, `joinWith`, `S` and `view` for tests.
+- **LAN play** is `toys-src/shared/lan.js`, the same as Quizbuzz and Trackaholic. The sections above on rejoining and join links describe how it works; the code moved there, with these changes:
+  - Players are keyed by the phone's lasting id (`bowling-bear.pid`) instead of `g1`, `g2`…, so `rekey` is gone: a phone that reloads and joins again simply has the same id.
+  - The invite screen ("Invite phones") shows the join code and a live camera preview that reads reply codes by itself, front camera by default with a "Use back camera" switch (`bowling-bear.cam`). When a phone connects, a fresh code appears for the next one and the status says who's in. "Scan their reply" is gone; pasting a reply still works. Leaving the screen turns the camera off.
+  - Codes are `BB4`. The in-game scanner is the shared full-screen one.
+  - The network tests `test/link.mjs` and `test/rejoin.mjs` are replaced by `toys-src/shared/test/lan.mjs`, which covers all three games.

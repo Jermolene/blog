@@ -19,14 +19,14 @@ for(const name of ['Ann','Bob']){
   phones.push(pg);await pg.waitForTimeout(1000);
 }
 const [ann,bob]=phones;
-for(const pg of phones)await pg.waitForFunction("window.__soloPad.link.g.debug().spareReady",null,{timeout:10000});
+for(const pg of phones)await pg.waitForFunction("window.__soloPad.link.g.debug().ready",null,{timeout:10000});
 await host.waitForTimeout(500);await host.click('#bStart');await host.waitForTimeout(1500);
-const show=pg=>pg.evaluate("(d=>[document.querySelector('.top .n')?.textContent,window.__soloPad.view&&(window.__soloPad.view.s+':'+(window.__soloPad.view.h||'')),d.live,'opens='+d.opens])(window.__soloPad.link.g.debug())");
+const show=pg=>pg.evaluate("(d=>[document.querySelector('.top .n')?.textContent,window.__soloPad.view&&(window.__soloPad.view.s+':'+(window.__soloPad.view.h||'')),d.state,'opens='+d.opens])(window.__soloPad.link.g.debug())");
 const hp=()=>host.evaluate("H.phase+' '+H.players.map(p=>p.name+(p.away?'(away)':'')).join(',')");
 console.log('before',await show(ann),await show(bob),await hp());
 await ann.evaluate("window.__soloPad.link.g.debug().kill()");await ann.waitForTimeout(4000);
 console.log('Ann after kill:',await show(ann));
-await ann.waitForFunction("window.__soloPad.link.g.debug().spareReady",null,{timeout:10000});
+await ann.waitForFunction("window.__soloPad.link.g.debug().ready",null,{timeout:10000});
 await ann.evaluate("window.__soloPad.link.g.debug().kill()");await ann.waitForTimeout(4000);
 console.log('Ann after 2nd kill:',await show(ann));
 await host.waitForTimeout(+process.argv[2]||60000);

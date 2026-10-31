@@ -3,8 +3,9 @@
 
 The toy must work when opened from disk, where fetch() of a .glb file fails,
 so the model arrives as a script that sets window.CAR_GLB to base64 GLB.
+toys-src/build.mjs inlines it into the page.
 
-Usage: python3 tools/build_car_model.py ../../static-assets/toys/trackaholic/car-model.js
+Usage: python3 tools/build_car_model.py src/car-model.js   (then node ../build.mjs trackaholic)
 """
 import base64, pathlib, sys
 

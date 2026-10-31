@@ -2,9 +2,9 @@
 
 Replaces Fall Line (the snowboard game). Fall Line was hard to play, and it had bugs: you could ride under the mountain, and trees floated.
 
-Trackaholic is a car race through a magical dusk valley, played alone against bots or with phones joining over the same Wi-Fi. It is a single HTML file plus the car model, using three.js 0.160 ES modules from jsDelivr, plus qrcode-generator and jsQR. It is published at `jermolene.com/toys/trackaholic/` from `static-assets/toys/trackaholic/index.html`, which is edited in place.
+Trackaholic is a car race through a magical dusk valley, played alone against bots or with phones joining over the same Wi-Fi. It is published at `jermolene.com/toys/trackaholic/` as a single self-contained HTML file, built from `toys-src/trackaholic/src/` by `node build.mjs trackaholic` (in `toys-src`): edit the source there, not the published file. The build inlines the car model, three.js 0.160 (bundled from `node_modules` by esbuild), qrcode-generator, jsQR and the shared LAN code, `toys-src/shared/lan.js`; see `toys-src/README.md`.
 
-Renamed from Glimmerway on 2026-10-30. Settings are stored under `trackaholic.*`, so old local settings and best times reset. The data channel is `trackaholic` and reply codes start `TA2A`, so devices must all run the same version.
+Renamed from Glimmerway on 2026-10-30. Settings are stored under `trackaholic.*`, so old local settings and best times reset. The data channel is `trackaholic`; codes start `TA4` (see Network), so devices must all run the same version.
 
 ## Car model
 
@@ -91,16 +91,20 @@ What it found, and what changed (all in `CAR`, which documents each setting):
 
 ## Network
 
-- Bowling Bear signalling, with the host as hub.
+- Joining, codes, reconnection and the host's camera are the shared `toys-src/shared/lan.js` (2026-10-30), as in Quizbuzz and Bowling Bear; its header explains it. Before that Trackaholic had its own copy, with older Base45 codes (`TA2A`) and a base64 join link (`#j=…`) that made a much denser QR. Links now look like `…/trackaholic/#TA4O…*` (41×41 modules); replies are 33×33.
+- The host's camera watches all the time, front by default, with a "Use back camera" switch (`trackaholic.cam`); reply codes can also be pasted, and the join link copied. On a phone, "Join a race" scans the host's code in the game and "Paste a code" takes it as text; both put the code after the # and the page reloads into joining (`LAN.takeHash`, which also takes the code out of the address).
+- Phones say hello with their name and the race they're in (`race`). A racer who drops mid-race and comes back over a spare carries on driving; before, the host answered every hello after the start with `spectate`, so they became a spectator.
+- The host is the hub.
 - `start.spec` and `lobby` carry `laps`.
 - The state packet holds: position, quaternion, velocity, steer, flags, 4× suspension compression, progress and throttle.
 
 ## On jermolene.com
 
-The toy must also work opened straight from disk, where `fetch()` of a local file fails, so the car arrives as `car-model.js`, a script that sets `window.CAR_GLB` to the base64 GLB, which `loadCar()` loads with a script tag (the same arrangement as Bear Beat's `bear-model.js`). `toys-src/trackaholic/assets/car.glb` is the processed model; after changing it, rewrite the script with:
+The toy must also work opened straight from disk, where `fetch()` of a local file fails, so the car is `src/car-model.js`, a script that sets `window.CAR_GLB` to the base64 GLB; the build inlines it, so the page has no separate model file. `toys-src/trackaholic/assets/car.glb` is the processed model; after changing it, rewrite the script and rebuild:
 
 ```
-python3 tools/build_car_model.py ../../static-assets/toys/trackaholic/car-model.js
+python3 tools/build_car_model.py src/car-model.js
+node ../build.mjs trackaholic
 ```
 
 (In the claude.ai artifact, whose host wouldn't serve `.glb`, the model was base64 in `car.txt`; that fallback has gone.)

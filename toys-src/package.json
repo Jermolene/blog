@@ -3,6 +3,9 @@
   "private": true,
   "description": "Shared test tooling for the toy sources. Some toys have their own package.json for extra build tools.",
   "devDependencies": {
-    "playwright": "1.62.1"
+    "cannon-es": "0.20.0",
+    "esbuild": "0.25.10",
+    "playwright": "1.62.1",
+    "three": "0.160.0"
   }
 }

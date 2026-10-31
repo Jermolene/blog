@@ -4,7 +4,9 @@
 The toy must work when opened from disk, where fetch() fails, so the model
 arrives as a script that sets window.BOWLING_BEAR_GLB to base64 GLB.
 
-Usage: python3 tools/build_toy_model.py <blog>/static-assets/toys/bowling-bear/bear-model.js
+toys-src/build.mjs inlines it into the page.
+
+Usage: python3 tools/build_toy_model.py src/bear-model.js   (then node ../build.mjs bowling-bear)
 """
 import base64, pathlib, sys
 

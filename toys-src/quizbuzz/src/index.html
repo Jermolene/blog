@@ -396,16 +396,21 @@ body.solo{background:var(--teak)}
 .camrow{display:flex;align-items:center;gap:10px;text-align:left}
 .camslot{flex:none;width:96px;height:72px;border-radius:10px;overflow:hidden;background:#1d1411;box-shadow:inset 0 0 0 2px var(--wood)}
 .campv{width:100%;height:100%;object-fit:cover}
-.campv.front{transform:scaleX(-1)}
 .camrow .jproto{font-size:14px;text-align:left}
 .joinov{position:absolute;right:24px;top:16px;z-index:7}
 .joinov .jcard.live{box-sizing:border-box;width:560px;padding:12px 22px 14px}
 .joinov .jcard.live img{width:516px;height:516px;margin:2px auto 8px}
 .camflip{flex:none;margin-left:auto;border:2px solid var(--wood);border-radius:999px;background:none;padding:8px 14px;font:400 11px var(--f-label);letter-spacing:1px;text-transform:uppercase;color:var(--wood)}
+.jcard .paste{display:flex;gap:8px;margin-top:10px}
+.jcard .paste input{flex:1;min-width:0;background:#fff;border:2px solid var(--cream2);border-radius:10px;padding:7px 10px;font:500 14px var(--f-body);color:var(--ink)}
+.jcard .paste button,.jphone button{border:2px solid var(--wood);border-radius:999px;background:none;padding:6px 14px;font:400 11px var(--f-label);letter-spacing:1px;text-transform:uppercase;color:var(--wood)}
+.jcard .jproto.jphone{margin-top:14px;font-size:14px}
+.jphone button{padding:4px 10px;margin:2px}
+.pad .rcopy{display:block;margin:0 auto auto;border:2px solid #bbb;border-radius:999px;background:none;padding:8px 16px;font:500 15px var(--f-body);color:#444}
 .pad.replyv{background:#fff;color:#111}
 .pad.replyv .top{display:none}
 .pad .rqr{display:block;width:100%;max-width:320px;margin:auto auto 0;image-rendering:pixelated}
-.pad .rq{margin:8px 0 auto;text-align:center;font:700 22px/1.2 var(--f-body);color:#111}
+.pad .rq{margin:8px 0 12px;text-align:center;font:700 22px/1.2 var(--f-body);color:#111}
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01s!important;transition-duration:.01s!important}}*{animation-duration:.01s!important;transition-duration:.01s!important}
 /* Keep iOS from selecting the page on taps and long presses */
 body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
@@ -429,7 +434,9 @@ input,textarea{-webkit-user-select:text;user-select:text}
   <div class="padgrid" id="pads"></div>
 </div>
 
-<!--__VENDOR__-->
+<script data-inline src="../../shared/vendor/qrcode.min.js"></script>
+<script data-inline src="../../shared/vendor/jsQR.min.js"></script>
+<script data-inline src="../../shared/lan.js"></script>
 <script>
 "use strict";
 /* ============ utilities ============ */
@@ -501,9 +508,8 @@ setInterval(()=>{const n=performance.now(),dt=Math.min(n-Clock.last,250);Clock.l
    toddler : the toddler's phone
    Messages up:   {t:'hello'|'join'|'ans'|'bet'|'choose'|'ready'|'chaos'|'ping', ...}
    Messages down: a complete view of that player's screen (see padView), so a rejoin just resends it. */
-const HASH=location.hash.slice(1),JOIN_CODE=/^(j=)?QB\d/i.test(HASH)?HASH:null;
+const JOIN_CODE=LAN.takeHash('#pad'),HASH=location.hash.slice(1); // a code from the projector's QR, taken out of the address
 const MODE=JOIN_CODE?'pad':['host','pad','toddler'].includes(HASH)?HASH:'studio';
-addEventListener('hashchange',()=>{if(/^#(j=)?QB\d/i.test(location.hash))location.reload()}); // a fresh scan in the same tab
 function makeLoopback(onHostMsg){
   const guests=new Map(),LAT=()=>rnd(5,25);
   return {
@@ -527,226 +533,45 @@ function makeChannelGuest(pid,onMsg){
   return {send};
 }
 
-/* ============ LAN transport: WebRTC with QR signalling (adapted from Bowling Bear) ============
-   One invite at a time. The projector shows a QR of the game URL with the host's offer in the fragment (#QB2O…*, see packSDP).
-   A phone opens it, makes an answer and shows it as a QR; the iPad's front camera reads it; the data channel opens.
-   As soon as one phone connects, a fresh invite replaces the code on screen.
-   The phone then says hello with its persistent id, so a reconnecting phone gets its own podium back. */
-const RTC_OK=typeof RTCPeerConnection!=='undefined'&&window.isSecureContext;
-const B41='0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ+-./:',SETUPS=['actpass','active','passive'];
-const ICE64='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-const b41=bytes=>{let s='';for(let i=0;i<bytes.length;i+=2){
-  if(i+1<bytes.length){const n=bytes[i]*256+bytes[i+1];s+=B41[n%41]+B41[(n/41|0)%41]+B41[n/1681|0];}
-  else s+=B41[bytes[i]%41]+B41[bytes[i]/41|0];}return s;};
-const unb41=s=>{const o=[],v=[...s].map(c=>{const k=B41.indexOf(c);if(k<0)throw 0;return k;});
-  for(let i=0;i<v.length;i+=3){
-    if(i+2<v.length){const n=v[i]+v[i+1]*41+v[i+2]*1681;if(n>65535)throw 0;o.push(n>>8,n&255);}
-    else if(i+1<v.length){const n=v[i]+v[i+1]*41;if(n>255)throw 0;o.push(n);}else throw 0;}
-  return new Uint8Array(o);};
-const ice6=s=>{const o=[s.length];let acc=0,bits=0;for(const ch of s){const k=ICE64.indexOf(ch);if(k<0)throw new Error('Unexpected connection details (ice).');
-  acc=acc<<6|k;bits+=6;if(bits>=8){bits-=8;o.push(acc>>bits&255);}}if(bits)o.push(acc<<(8-bits)&255);return o;};
-function ip6Bytes(a){const[h,t]=a.split('::'),w=s=>s?s.split(':'):[],hw=w(h),tw=t===undefined?[]:w(t);
-  const all=[...hw,...Array(8-hw.length-tw.length).fill('0'),...tw],o=[];for(const x of all){const n=parseInt(x,16);o.push(n>>8,n&255);}return o;}
-const ip6Text=b=>Array.from({length:8},(_,i)=>(b[2*i]*256+b[2*i+1]).toString(16)).join(':');
-const UUID_LOCAL=/^([0-9a-f]{8})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{12})\.local$/i;
-async function packSDP(kind,sdp){ // kind 'O' offer, 'A' answer
-  const get=k=>{const m=new RegExp('^a='+k+':(.*)$','m').exec(sdp);if(!m)throw new Error('Unexpected connection details ('+k+').');return m[1].trim();};
-  const fp=get('fingerprint').split(' ');if(fp[0].toLowerCase()!=='sha-256')throw new Error('Unexpected connection details (fingerprint).');
-  const cands=[];
-  for(const m of sdp.matchAll(/^a=candidate:\S+ 1 udp \d+ (\S+) (\d+) typ host/gim)){
-    const[,addr,port]=m;let c;
-    if(/^\d+\.\d+\.\d+\.\d+$/.test(addr))c=[4,...addr.split('.').map(Number)];
-    else if(UUID_LOCAL.test(addr))c=[16,...addr.slice(0,36).replace(/-/g,'').match(/../g).map(h=>parseInt(h,16))];
-    else if(addr.includes(':'))c=[6,...ip6Bytes(addr)];
-    else continue;
-    c.push(+port>>8,+port&255);if(!cands.some(x=>x.join()===c.join()))cands.push(c);
-  }
-  // plain addresses first, then mDNS names; IPv6 only when there is nothing else (it makes the code bigger and rarely helps on home Wi-Fi)
-  let use=[...cands.filter(c=>c[0]===4),...cands.filter(c=>c[0]===16)];if(!use.length)use=cands;use=use.slice(0,3);
-  const mid=get('mid'),str=s=>[s.length,...[...s].map(ch=>ch.charCodeAt(0))];
-  const bytes=[SETUPS.indexOf(get('setup'))|(mid==='0'?0:4),...(mid==='0'?[]:str(mid)),...ice6(get('ice-ufrag')),...ice6(get('ice-pwd')),
-    ...fp[1].split(':').map(h=>parseInt(h,16)),use.length,...use.flat()];
-  return 'QB2'+kind+b41(new Uint8Array(bytes))+'*';
-}
-const codeOf=text=>(text||'').trim().replace(/^.*#/,'').toUpperCase();
-async function unpackSDP(code){
-  code=codeOf(code);
-  if(/^(J=)?QB1/.test(code))throw new Error('That code is from an older Quizbuzz. Reload the page on the big screen.');
-  const m=/^QB2([OA])(.*)\*$/.exec(code),bad=()=>new Error('That isn’t a Quizbuzz code.');
-  if(!m)throw bad();
-  let b;try{b=unb41(m[2]);}catch(e){throw bad();}
-  let i=0;const str=()=>{const n=b[i++];return String.fromCharCode(...b.slice(i,i+=n));};
-  const ice=()=>{const n=b[i++];let s='',acc=0,bits=0;while(s.length<n){if(bits<6){acc=(acc<<8|b[i++])&0xffff;bits+=8;}bits-=6;s+=ICE64[acc>>bits&63];}return s;};
-  const f=b[i++],setup=SETUPS[f&3],mid=f&4?str():'0',ufrag=ice(),pwd=ice();
-  const hex=Array.from(b.slice(i,i+=32),x=>x.toString(16).padStart(2,'0').toUpperCase()).join(':');
-  const L=['v=0','o=- '+Math.floor(Math.random()*1e15)+' 2 IN IP4 127.0.0.1','s=-','t=0 0','a=group:BUNDLE '+mid,'a=msid-semantic: WMS',
-    'm=application 9 UDP/DTLS/SCTP webrtc-datachannel','c=IN IP4 0.0.0.0'];
-  for(let n=b[i++],k=0;k<n;k++){
-    const t=b[i++],a=b.slice(i,i+=t===4?4:16);let addr;
-    if(t===4)addr=a.join('.');
-    else if(t===6)addr=ip6Text(a);
-    else{const h=Array.from(a,x=>x.toString(16).padStart(2,'0')).join('');addr=[h.slice(0,8),h.slice(8,12),h.slice(12,16),h.slice(16,20),h.slice(20)].join('-')+'.local';}
-    const port=b[i]*256+b[i+1];i+=2;
-    L.push('a=candidate:'+(k+1)+' 1 udp '+(2122260223-k)+' '+addr+' '+port+' typ host generation 0');
-  }
-  if(!setup||i!==b.length||hex.length!==95)throw bad();
-  L.push('a=end-of-candidates','a=ice-ufrag:'+ufrag,'a=ice-pwd:'+pwd,'a=fingerprint:sha-256 '+hex,'a=setup:'+setup,'a=mid:'+mid,'a=sctp-port:5000','a=max-message-size:262144');
-  return{kind:m[1],sdp:L.join('\r\n')+'\r\n'};
-}
-function waitIce(pc){return new Promise(res=>{
-  if(pc.iceGatheringState==='complete')return res();
-  const t=setTimeout(res,3000);
-  pc.addEventListener('icegatheringstatechange',()=>{if(pc.iceGatheringState==='complete'){clearTimeout(t);res()}});
-})}
-function qrDataURL(text,px=560){ // a link: its address as bytes, the code after # in alphanumeric mode
-  const q=qrcode(0,'L'),k=text.lastIndexOf('#');
-  if(k>=0)q.addData(text.slice(0,k+1),'Byte');q.addData(text.slice(k+1),'Alphanumeric');q.make();
-  const n=q.getModuleCount(),quiet=3,s=Math.max(2,Math.floor(px/(n+quiet*2))),c=document.createElement('canvas');
-  c.width=c.height=(n+quiet*2)*s;const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);g.fillStyle='#000';
-  for(let r=0;r<n;r++)for(let k=0;k<n;k++)if(q.isDark(r,k))g.fillRect((k+quiet)*s,(r+quiet)*s,s,s);
-  return c.toDataURL();
-}
-async function primeCamera(){ // Safari only offers LAN ICE candidates after camera permission
-  try{const s=await navigator.mediaDevices.getUserMedia({video:true});s.getTracks().forEach(t=>t.stop())}catch(e){}
-}
-const RTC_FAIL='Couldn’t connect. The phone and the iPad must be on the same Wi-Fi, and some guest networks block devices from talking to each other.';
-
-/* ---- spare lines ----
-   A dropped connection can't be revived from storage: every WebRTC link needs both sides to swap fresh keys and addresses.
-   So while a phone is connected, the host sets up a spare link with it over the live one, but keeps its own addresses back,
-   so the spare sits idle. If the live link dies (phone locked, a quick switch to another app), the phone feeds in the host's
-   addresses, the host learns the phone's address from its first check, and the spare opens without anyone scanning anything. */
-const noCands=sdp=>sdp.split(/\r?\n/).filter(l=>l&&!/^a=(candidate|end-of-candidates)/.test(l)).join('\r\n')+'\r\n';
-
-/* ---- host side ---- */
+/* ============ LAN transport: WebRTC with QR signalling (toys-src/shared/lan.js) ============
+   The projector shows a QR of the game URL with the host's offer after the # (#QB4O…*). A phone opens it, makes an
+   answer and shows it as a QR; the iPad's camera reads it; the data channel opens, and a fresh invite replaces the code
+   on screen. Each phone keeps an id, so a phone that rejoins gets its own podium back, and spare links bring a phone
+   back by themselves after it locks. */
+const QB_LAN=LAN.game({id:'QB',name:'Quizbuzz',channel:'buzzers',store:'qb'});
+const RTC_OK=QB_LAN.ok;
 function makeRtcHost(onHostMsg){
-  const peers=new Map(),spares=new Map(),last=new Map(),api={pending:null,joinURL:'',status:'',onChange:()=>{}};
-  let n=0,lastCode='';
-  function wire(e){
-    e.dc.onmessage=ev=>{let m;try{m=JSON.parse(ev.data)}catch(err){return}
-      if(!e.pid){if(m.t!=='hello')return;e.pid=String(m.pid||('r'+e.n)).slice(0,24)}
-      if(m.t==='hello'){const old=peers.get(e.pid);if(old&&old!==e){try{old.pc.close()}catch(x){}}peers.set(e.pid,e);if(spares.get(e.pid)===e)spares.delete(e.pid);spare(e)}
-      last.set(e.pid,Date.now());
-      if(m.t==='ping'){try{e.dc.send('{"s":"pong"}')}catch(err){}return}
-      if(m.t==='spare'){const s=spares.get(e.pid);if(s&&s.n===m.n)s.pc.setRemoteDescription({type:'answer',sdp:m.sdp}).catch(()=>{});return}
-      onHostMsg(e.pid,m)};
-    e.dc.onclose=()=>{if(e.pid&&peers.get(e.pid)===e)peers.delete(e.pid)};
-  }
-  async function spare(via){
-    const pid=via.pid,old=spares.get(pid);if(old){try{old.pc.close()}catch(x){}}
-    const pc=new RTCPeerConnection({iceServers:[]}),dc=pc.createDataChannel('buzzers',{ordered:true});
-    const e={pc,dc,pid,n:++n};spares.set(pid,e);wire(e);
-    await pc.setLocalDescription(await pc.createOffer());await waitIce(pc);
-    if(spares.get(pid)!==e||via.dc.readyState!=='open')return;
-    try{via.dc.send(JSON.stringify({s:'spare',n:e.n,sdp:pc.localDescription.sdp}))}catch(err){}
-  }
-  async function invite(){
-    if(api.pending){try{api.pending.pc.close()}catch(e){}}
-    const pc=new RTCPeerConnection({iceServers:[]}),dc=pc.createDataChannel('buzzers',{ordered:true});
-    const e={pc,dc,pid:null,n:++n};api.pending=e;api.joinURL='';api.status='';api.onChange();wire(e);
-    dc.addEventListener('open',()=>{if(api.pending===e){api.pending=null;invite()}});
-    pc.onconnectionstatechange=()=>{if(pc.connectionState==='failed'&&api.pending===e){api.status=RTC_FAIL;invite()}};
-    await pc.setLocalDescription(await pc.createOffer());await waitIce(pc);
-    if(api.pending!==e)return;
-    const code=await packSDP('O',pc.localDescription.sdp);
-    api.joinURL=location.origin+location.pathname+'#'+code;api.onChange();
-  }
-  api.start=async()=>{await primeCamera();invite()};
-  api.acceptReply=async code=>{
-    if(code===lastCode)return;lastCode=code;
-    const e=api.pending;if(!e)return;
-    try{const {kind,sdp}=await unpackSDP(code);if(kind!=='A')return;await e.pc.setRemoteDescription({type:'answer',sdp});api.status='Connecting…';api.onChange()}
-    catch(err){api.status=err.message;api.onChange();invite()}
-  };
-  api.has=pid=>{const e=peers.get(pid);return !!e&&e.dc.readyState==='open'};
-  api.send=(pid,m)=>{const e=peers.get(pid);if(e&&e.dc.readyState==='open')try{e.dc.send(JSON.stringify(m))}catch(err){}};
-  api.seen=pid=>last.get(pid)||0;
-  return api;
-}
-/* the host's camera (front or back) reads reply codes held up to the iPad */
-function startReplyCamera(video,onCode,facing){
-  let alive=true,stream=null,det=null;
-  (async()=>{
-    try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:facing},audio:false})}catch(e){onCode(null,'The camera isn’t available. Allow camera access for this page.');return}
-    video.srcObject=stream;video.muted=true;video.playsInline=true;try{await video.play()}catch(e){}
-    try{if('BarcodeDetector' in window&&(await BarcodeDetector.getSupportedFormats()).includes('qr_code'))det=new BarcodeDetector({formats:['qr_code']})}catch(e){}
-    const cv=document.createElement('canvas'),g=cv.getContext('2d',{willReadFrequently:true});
-    const tick=async()=>{
-      if(!alive)return;
-      if(video.readyState>=2){let txt=null;
-        try{if(det){const r=await det.detect(video);if(r[0])txt=r[0].rawValue}
-          else{const w=Math.min(640,video.videoWidth),h=Math.round(video.videoHeight*w/video.videoWidth);cv.width=w;cv.height=h;g.drawImage(video,0,0,w,h);const r=jsQR(g.getImageData(0,0,w,h).data,w,h,{inversionAttempts:'dontInvert'});if(r)txt=r.data}}catch(e){}
-        if(txt&&codeOf(txt).startsWith('QB2A'))onCode(txt)}
-      setTimeout(tick,200);
-    };tick();
-  })();
-  return ()=>{alive=false;if(stream)stream.getTracks().forEach(t=>t.stop());video.srcObject=null};
+  const api={joinURL:'',status:'',onChange:()=>{}};
+  const h=api.lan=QB_LAN.host({
+    onInvite(url){api.joinURL=url;api.onChange()},
+    onStatus(t){api.status=t;api.onChange()},
+    onJoin(pid){onHostMsg(pid,{t:'hello'})},
+    onMessage:onHostMsg});
+  return Object.assign(api,{start:h.start,acceptReply:h.accept,has:h.has,send:h.send,seen:h.seen});
 }
 /* host transport: buzzers in other windows (BroadcastChannel) and phones on the LAN (WebRTC) together */
 function makeMultiHost(onHostMsg){
   const ch=makeChannelHost(onHostMsg),rtc=RTC_OK?makeRtcHost(onHostMsg):null;
   return {rtc,send(pid,m){if(rtc&&rtc.has(pid))rtc.send(pid,m);else ch.send(pid,m)},seen(pid){return Math.max(ch.seen(pid),rtc?rtc.seen(pid):0)}};
 }
-
-/* ---- guest side ---- */
-/* keep the phone's screen on while it's a buzzer, so it doesn't lock mid-question */
-function keepAwake(){
-  if(!('wakeLock' in navigator))return;
-  let lock=null;
-  const ask=()=>{if(lock||document.visibilityState!=='visible')return;navigator.wakeLock.request('screen').then(l=>{lock=l;l.addEventListener('release',()=>{lock=null})}).catch(()=>{})};
-  document.addEventListener('visibilitychange',ask);addEventListener('pointerdown',ask);ask();
-}
 function makeRtcGuest(pid,offerCode,onMsg){
-  let live=null,spare=null,ping=null,heard=0,rescuing=null,opens=0;
-  const link={send(m){const dc=live&&live.dc;if(dc&&dc.readyState==='open')try{dc.send(JSON.stringify(m))}catch(e){}}};
-  const lost=()=>{if(!rescuing)onMsg({s:'lost'})};
-  function wire(line){
-    line.pc.ondatachannel=e=>{const dc=line.dc=e.channel;
-      dc.onopen=()=>{
-        if(live&&live!==line){try{live.pc.close()}catch(x){}}
-        live=line;opens++;if(spare===line)spare=null;clearTimeout(rescuing);rescuing=null;heard=Date.now();
-        dc.send(JSON.stringify({t:'hello',pid}));
-        if(!ping){ping=setInterval(()=>{link.send({t:'ping'});if(Date.now()-heard>6000)rescue()},2000);keepAwake();
-          document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')check()})}};
-      dc.onmessage=ev=>{if(live!==line)return;heard=Date.now();let m;try{m=JSON.parse(ev.data)}catch(err){return}
-        if(m.s==='pong')return;if(m.s==='spare'){prepare(m);return}onMsg(m)};
-      dc.onclose=()=>{if(live===line)rescue()}};
-    line.pc.onconnectionstatechange=()=>{const st=line.pc.connectionState;
-      if(live===line&&st==='failed')rescue();
-      if(live===line&&st==='disconnected')setTimeout(()=>{if(live===line&&line.pc.connectionState!=='connected')rescue()},2500);
-      if(!live&&line.first&&st==='failed')onMsg({s:'msg',h:'No luck',p:RTC_FAIL+' Scan the code on the big screen to try again.'})};
-  }
-  /* on coming back to the page: a quick ping, and the spare if nothing answers */
-  function check(){const t=Date.now();link.send({t:'ping'});setTimeout(()=>{if(heard<t)rescue()},1500)}
-  async function prepare(m){ // the host's spare offer, minus its addresses for now
-    if(spare){try{spare.pc.close()}catch(x){}}
-    const line={pc:new RTCPeerConnection({iceServers:[]}),cands:m.sdp.split(/\r?\n/).filter(l=>l.startsWith('a=candidate:')).map(l=>l.slice(2)),mid:(/^a=mid:(\S+)/m.exec(m.sdp)||[])[1]||'0'};
-    spare=line;wire(line);
-    try{await line.pc.setRemoteDescription({type:'offer',sdp:noCands(m.sdp)});await line.pc.setLocalDescription(await line.pc.createAnswer());
-      if(spare===line)link.send({t:'spare',n:m.n,sdp:noCands(line.pc.localDescription.sdp)})}catch(err){if(spare===line)spare=null}
-  }
-  function rescue(){
-    if(rescuing)return;
-    const line=spare;if(!line){lost();return}
-    rescuing=setTimeout(()=>{rescuing=null;if(live!==line){spare=null;try{line.pc.close()}catch(x){}lost()}},12000);
-    onMsg({s:'msg',h:'Back in a moment',p:'Finding the studio again…'});
-    line.cands.forEach(c=>line.pc.addIceCandidate({candidate:c,sdpMid:line.mid}).catch(()=>{}));
-  }
+  const g=QB_LAN.guest({pid,
+    onReply(code){onMsg({s:'reply',qr:LAN.qrDataURL(code,520),code})},
+    onMessage:onMsg,
+    onReconnecting(){onMsg({s:'msg',h:'Back in a moment',p:'Finding the studio again…'})},
+    onLost(){onMsg({s:'lost'})},
+    onStatus(t){onMsg({s:'msg',h:'No luck',p:t+' Scan the code on the big screen to try again.'})}});
+  const link={send:m=>g.send(m),debug:()=>g.debug()};
   link.connect=async()=>{
     onMsg({s:'msg',h:'One moment',p:'Making your reply code…'});
-    try{
-      await primeCamera();
-      const {kind,sdp}=await unpackSDP(offerCode);if(kind!=='O')throw new Error('Scan the code on the big screen.');
-      const line={pc:new RTCPeerConnection({iceServers:[]}),first:true};wire(line);
-      await line.pc.setRemoteDescription({type:'offer',sdp});
-      await line.pc.setLocalDescription(await line.pc.createAnswer());await waitIce(line.pc);
-      const reply=await packSDP('A',line.pc.localDescription.sdp);link.reply=reply;
-      onMsg({s:'reply',qr:qrDataURL(reply,520)});
-    }catch(err){onMsg({s:'msg',h:'No luck',p:err.message})}
+    try{link.reply=await g.join(offerCode)}catch(err){onMsg({s:'msg',h:'No luck',p:err.message})}
   };
-  link.debug=()=>({opens,live:live&&live.pc.connectionState,spare:!!spare,spareReady:!!(spare&&spare.pc.localDescription),kill(){live.pc.close()},mute(){live.dc.onmessage=null}});
   return link;
 }
+/* a phone without a camera app that opens links: read the big screen's code here, or paste it */
+function joinFromCode(text){if(text)location.hash=LAN.codeOf(text)}
+function scanToJoin(){QB_LAN.scan('O').then(joinFromCode).catch(err=>{if(err.message!=='cancelled')alert(err.message)})}
+function pasteToJoin(){const t=prompt('Paste the code from the big screen');if(!t)return;try{QB_LAN.check(t,'O');joinFromCode(t)}catch(err){alert(err.message)}}
 
 /* ============ game definition ============ */
 const ROUNDS={
@@ -1248,44 +1073,40 @@ function joinShell(){
     ${joinCardHTML()}
   </div><div class="tutfoot"><span class="tcount" id="joinCount"></span><span class="hint">Tap for the next step</span></div></div>`;
 }
-const LAN=()=>MODE==='host'&&net.rtc;
+const hostLAN=()=>MODE==='host'&&net.rtc;
 function joinCardHTML(){
-  if(MODE==='studio')return `<div class="jcard"><div class="jk">Practice studio</div><div class="jproto">Play on the pads below, with robots to make up the numbers.</div><button type="button" class="jhost" onclick="event.stopPropagation();location.hash='host';location.reload()">Host a real game</button><div class="jproto">Put this on the big screen and everyone joins with their phone.</div></div>`;
-  if(!LAN())return `<div class="jcard"><div class="jk">Scan to join</div><img src="${QR.join}" alt="Join code"><div class="jproto">Phones need the page on HTTPS. Meanwhile, open buzzer windows with #pad.</div></div>`;
+  if(MODE==='studio')return `<div class="jcard"><div class="jk">Practice studio</div><div class="jproto">Play on the pads below, with robots to make up the numbers.</div><button type="button" class="jhost" onclick="event.stopPropagation();location.hash='host';location.reload()">Host a real game</button><div class="jproto">Put this on the big screen and everyone joins with their phone.</div>${RTC_OK?`<div class="jproto jphone">A game on already? <button type="button" onclick="event.stopPropagation();scanToJoin()">Scan its code</button> or <button type="button" onclick="event.stopPropagation();pasteToJoin()">paste it</button></div>`:''}</div>`;
+  if(!hostLAN())return `<div class="jcard"><div class="jk">Scan to join</div><img src="${QR.join}" alt="Join code"><div class="jproto">Phones need the page on HTTPS. Meanwhile, open buzzer windows with #pad.</div></div>`;
   return '<div></div>';
 }
 /* in host mode the join card is big enough to scan from the sofa, so it sits on the stage beside the screen: all through the lobby, and during a game when the host asks for it */
+const flipLabel=()=>net.rtc.lan.facing==='user'?'Use back camera':'Use front camera';
 function liveCardHTML(title){
-  return `<div class="jcard live"><div class="jk">${title}</div><img class="joinqr" src="" alt="Join code"><div class="camrow"><div class="camslot"></div><div class="jproto" id="rtcStatus"></div><button type="button" class="camflip" onclick="event.stopPropagation();flipCamera()">${cam.facing==='user'?'Use back camera':'Use front camera'}</button></div></div>`;
+  return `<div class="jcard live"><div class="jk">${title}</div><img class="joinqr" src="" alt="Join code"><div class="camrow"><div class="camslot"></div><div class="jproto" id="rtcStatus"></div><button type="button" class="camflip" onclick="event.stopPropagation();flipCamera()">${flipLabel()}</button></div><form class="paste" onclick="event.stopPropagation()" onsubmit="event.preventDefault();net.rtc.acceptReply(this.code.value);this.code.value=''"><input name="code" placeholder="Or paste a reply code" aria-label="Reply code" autocomplete="off"><button>Add</button></form></div>`;
 }
 function syncJoinCard(){
   const ov=$('#joinOv');if(!ov)return;
-  const show=!!LAN()&&(H.phase==='lobby'||Join.ov),title=H.phase==='lobby'?'Scan to join':'Join or rejoin';
+  const show=!!hostLAN()&&(H.phase==='lobby'||Join.ov),title=H.phase==='lobby'?'Scan to join':'Join or rejoin';
   if(show&&(ov.hidden||ov.dataset.title!==title)){ov.innerHTML=liveCardHTML(title);ov.dataset.title=title;refreshJoinQR()}
   ov.hidden=!show;placeCamera();
 }
-function flipCamera(){
-  cam.facing=cam.facing==='user'?'environment':'user';store.set('qb.cam',cam.facing);
-  if(cam.stop)cam.stop();if(cam.video)cam.video.remove();cam.video=null;
-  $('#joinOv').hidden=true;syncJoinCard();
-}
+function flipCamera(){net.rtc.lan.flip();document.querySelectorAll('.camflip').forEach(b=>b.textContent=flipLabel())}
 /* the camera preview element survives re-renders and is moved into whichever slot is showing */
-const cam={video:null,stop:null,facing:store.get('qb.cam','user')};
+const cam={video:null};
 function placeCamera(){
-  if(!LAN())return;
-  if(!cam.video){cam.video=document.createElement('video');cam.video.className='campv'+(cam.facing==='user'?' front':'');cam.video.setAttribute('playsinline','');cam.video.muted=true;
-    cam.stop=startReplyCamera(cam.video,(code,err)=>{if(err){net.rtc.status=err;net.rtc.onChange();return}net.rtc.acceptReply(code)},cam.facing)}
+  if(!hostLAN())return;
+  if(!cam.video){cam.video=document.createElement('video');cam.video.className='campv';net.rtc.lan.watch(cam.video)}
   const slot=document.querySelector('#joinOv:not([hidden]) .camslot');
   if(slot&&cam.video.parentNode!==slot)slot.appendChild(cam.video);
 }
 function refreshJoinQR(){
-  if(!LAN())return;
-  const url=net.rtc.joinURL,src=url?qrDataURL(url):QR.join;
+  if(!hostLAN())return;
+  const url=net.rtc.joinURL,src=url?LAN.qrDataURL(url):QR.join;
   document.querySelectorAll('img.joinqr').forEach(im=>{im.src=src;im.style.opacity=url?1:.15});
   document.querySelectorAll('#rtcStatus').forEach(e=>e.textContent=net.rtc.status||'Then hold your phone up to the iPad camera.');
 }
 function toggleJoinOverlay(show){
-  if(!LAN())return;
+  if(!hostLAN())return;
   Join.ov=show===undefined?!Join.ov:!!show;
   syncJoinCard();renderHost();
 }
@@ -1341,7 +1162,7 @@ function renderHost(){
   const btn=(id,t,cls='',dis=false)=>`<button type="button" class="hb ${cls}" id="${id}" ${dis?'disabled':''}>${t}</button>`;
   $('#hostbar').innerHTML=lobby
     ?btn('bStart','Start game','primary',H.players.length<2)
-    :[btn('bNext','Next',!!H.next?'primary':'',!H.next),btn('bPause',Clock.paused?'Resume':'Pause'),btn('bSkip','Skip question','',ph!=='q'),LAN()?btn('bJoinCode',Join.ov?'Hide join code':'Join code'):'',qm?btn('bFlag','Flag question','',!H.q||ph==='lobby'):'',btn('bQuit',ph==='final'?'New game':'End game')].join('');
+    :[btn('bNext','Next',!!H.next?'primary':'',!H.next),btn('bPause',Clock.paused?'Resume':'Pause'),btn('bSkip','Skip question','',ph!=='q'),hostLAN()?btn('bJoinCode',Join.ov?'Hide join code':'Join code'):'',qm?btn('bFlag','Flag question','',!H.q||ph==='lobby'):'',btn('bQuit',ph==='final'?'New game':'End game')].join('');
   $('#settings').hidden=!lobby;
   if(lobby)$('#settings').innerHTML=
     seg('Host','role',[['play','Playing'],['host','Quizmaster']])+
@@ -1403,6 +1224,7 @@ class Pad{
     else if(b.dataset.t)this.send({t:'choose',target:b.dataset.t});
     else if(b.dataset.bet)this.send({t:'bet',v:+b.dataset.bet});
     else if(b.dataset.hit){this.send({t:'chaos',target:b.dataset.hit});b.classList.add('hit');if(this.view&&this.view.charged&&this.view.cycle>=0){this.view.charged=false;this.view.readyIn=TOD_RECHARGE;this.view.cycle+=.5;setTimeout(()=>this.render(this.view),350)}}
+    else if(b.dataset.copy!=null){navigator.clipboard.writeText(this.view.code).then(()=>b.textContent='Copied',()=>b.textContent='Couldn’t copy')}
     else if(b.dataset.rtc){if(this.link.g)return;if(b.dataset.rtc==='tod')this.pid='tod';this.link.g=makeRtcGuest(this.pid,this.opts.rtc,m=>this.onMsg(m));this.link.g.connect()}
     else if(b.classList.contains('go'))this.join();
     else if(b.dataset.tut){const L=padSlides(this.view).length,d=b.dataset.tut;if(d==='ready'){this.send({t:'ready',v:true});return}if(d==='again'){this.ti=0;this.send({t:'ready',v:false});return}this.ti=Math.max(0,Math.min(L-1,(this.ti||0)+(d==='next'?1:-1)));this.render(this.view)}
@@ -1423,7 +1245,7 @@ class Pad{
     if(v.s==='join'){const id='nm-'+this.pid,nm=this.opts.solo?store.get('qb.name',''):this.opts.name;body=`<div class="msg"><h2>Quizbuzz</h2><p>What’s your name?</p></div><input id="${id}" maxlength="12" value="${esc(nm)}" placeholder="Your name" autocomplete="off" aria-label="Your name"><button type="button" class="go">Take my place</button>`}
     else if(v.s==='msg')body=`<div class="msg"><h2>${esc(v.h||'')}</h2><p>${esc(v.p||'')}</p></div>`;
     else if(v.s==='rtcjoin')body=`<div class="msg"><h2>Quizbuzz</h2><p>You’ve found the studio.</p></div><button type="button" class="go" data-rtc="player">Join the game</button><button type="button" class="tnav ghost" data-rtc="tod">This is the toddler’s phone</button>`;
-    else if(v.s==='reply'){el.classList.add('replyv');body=`<img class="rqr" src="${v.qr}" alt="Reply code"><p class="rq">Hold this up to the iPad’s camera</p>`}
+    else if(v.s==='reply'){el.classList.add('replyv');body=`<img class="rqr" src="${v.qr}" alt="Reply code"><p class="rq">Hold this up to the iPad’s camera</p><button type="button" class="rcopy" data-copy>Copy code as text</button>`}
     else if(v.s==='lost')body=`<div class="msg"><h2>Lost the studio</h2><p>Scan the code on the big screen to rejoin. You’ll get your podium back.</p></div>`;
     else if(v.s==='tut'&&v.ready)body=`<div class="msg"><h2>Ready!</h2><p>Your podium has a tick. The game starts when the host presses Start.</p></div><button type="button" class="tnav ghost" data-tut="again">Read the rules again</button>`;
     else if(v.s==='tut'){
@@ -1505,7 +1327,6 @@ if(MODE==='pad'||MODE==='toddler'){
   $('#app').hidden=true;
   const cell=document.createElement('div');cell.className='solocell';document.body.appendChild(cell);
   if(JOIN_CODE){ // opened from the projector's QR: connect over the LAN
-    try{history.replaceState(null,'',location.pathname+location.search+'#pad')}catch(e){}
     const pid=guestId('pad',true);
     const pad=new Pad(cell,pid,{solo:true,label:'Buzzer',rtc:JOIN_CODE,link:cb=>{const L={g:null,send:m=>L.g&&L.g.send(m)};return L}});
     pad.render({s:'rtcjoin'});window.__soloPad=pad;
@@ -1515,7 +1336,7 @@ if(MODE==='pad'||MODE==='toddler'){
   }
 } else {
   fitBox($('#stageFit'),1600,900,()=>Math.max(260,innerHeight*(MODE==='host'?.8:.62)));
-  if(LAN()){net.rtc.onChange=refreshJoinQR;net.rtc.start().catch(e=>{net.rtc.status='This device can’t make join codes: '+e.message;refreshJoinQR()})}
+  if(hostLAN()){net.rtc.onChange=refreshJoinQR;net.rtc.start().catch(e=>{net.rtc.status='This device can’t make join codes: '+e.message;refreshJoinQR()})}
   buildPads();sync();requestAnimationFrame(frame);
 }
 </script>

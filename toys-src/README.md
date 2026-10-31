@@ -6,11 +6,12 @@ Each toy's notes are in its `CLAUDE.md` or `HANDOVER.md`. Read them before makin
 
 | Toy | Published file is | What's here |
 |---|---|---|
-| `quizbuzz` | **Built**: `python3 build.py` writes `static-assets/toys/quizbuzz/index.html` | Source (`src/game.html`), question bank, fonts, vendored QR libraries, tests |
+| `quizbuzz` | **Built** by `build.mjs` (with `build-hook.mjs` for the question bank and fonts) | Source (`src/index.html`), question bank, fonts, tests |
 | `meadow-games` | **Built**: `python3 tools/build.py --site` writes `index.html` and `models.js` | Source for three apps (only Meadow Games is published), the CC0 animal models, tests |
-| `bowling-bear` | Edited in place | Notes; the original table-mode handover (`src/`); the bear model (CC BY 4.0) and `tools/build_toy_model.py`, which writes `bear-model.js`; tests, including the network tests `test/rejoin.mjs` and `test/link.mjs` |
+| `shared` | | Code that the built toys share: `lan.js` (LAN play over WebRTC and QR codes), the vendored QR libraries, and `test/lan.mjs` |
+| `bowling-bear` | **Built** by `build.mjs` | Source (`src/index.html` and `src/bear-model.js`); notes; the original table-mode handover (`handover/`); the bear model (CC BY 4.0) and `tools/build_toy_model.py`, which writes `src/bear-model.js`; the handover's tests |
 | `bear-beat` | Edited in place | Notes; the bear model and `tools/build_toy_model.py`; tests |
-| `trackaholic` | Edited in place | Handover notes; the car model (CC BY 4.0) and `tools/build_car_model.py`, which writes `car-model.js`; `test/gameplay.mjs`, a headless test of the handling with simulated drivers, compared with a committed baseline |
+| `trackaholic` | **Built** by `build.mjs` | Source (`src/index.html` and `src/car-model.js`); handover notes; the car model (CC BY 4.0) and `tools/build_car_model.py`, which writes `src/car-model.js`; `test/gameplay.mjs`, a headless test of the handling with simulated drivers, compared with a committed baseline |
 | `flowing-field` | Edited in place | Notes and `tools/render.mjs`, a headless render check. Its history, from its own repository, is merged into this one |
 | `animal-island`, `trundle-world` | Edited in place | Notes and checks |
 | `fractaliser`, `lala-yala`, `rug-addict` | Edited in place | Handover notes |
@@ -18,11 +19,29 @@ Each toy's notes are in its `CLAUDE.md` or `HANDOVER.md`. Read them before makin
 
 A built toy starts with a comment naming the script that builds it. Don't edit it directly: change the source here, rebuild, and commit both.
 
+## Building the multiplayer games
+
+Quizbuzz, Bowling Bear and Trackaholic are built from `<toy>/src/index.html` by `build.mjs`:
+
+```
+node build.mjs                     # all three
+node build.mjs trackaholic         # just one
+```
+
+Each published page is a single file that needs nothing but itself, Google Fonts and the site's `../pwa.js`, so it works offline and opened from disk. The source is an ordinary page that also runs as it is (serve `toys-src` and open `<toy>/src/index.html`), using three markers:
+- `<script data-inline src="…"></script>` is replaced by the file's contents: the shared code, the QR libraries, a model.
+- `<script type="importmap" data-dev>` points the source at `node_modules`; the build drops it.
+- `<script type="module" data-bundle>` is bundled by esbuild, so three.js and cannon-es come from `node_modules` at the versions pinned in `package.json`, and are minified with the game's own code.
+
+A toy can add a `build-hook.mjs` with `before(html)` and `after(html)` for anything else (Quizbuzz's question bank and fonts, and its artifact copies).
+
+**LAN play** is the same in all three: `shared/lan.js`, whose header explains joining, the codes and reconnecting. A game makes `LAN.game({id, name, channel, store})` and uses its `host()` or `guest()` with callbacks for its own messages; the page also gets `LAN.drawQR`, the in-game scanner (`scan`) and `LAN.takeHash` for a code that arrives in the address. Change it there, rebuild all three, and run `node shared/test/lan.mjs`: a host and two phones per game in separate Chromium processes, joining, reconnecting over the spare links, rejoining after a reload and the messages for wrong codes. Codes carry the protocol version (`V`), so bump it when a change means old and new pages can't talk.
+
 ## Setting up
 
 ```
 cd toys-src
-npm install                      # Playwright, shared by the tests
+npm install                      # Playwright for the tests; esbuild, three.js and cannon-es for build.mjs
 npx playwright install chromium
 ```
 
