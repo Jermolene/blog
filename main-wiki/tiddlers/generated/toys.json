@@ -54,7 +54,7 @@
 		"url": "/toys/catflap/",
 		"tags": "toy",
 		"text": "",
-		"category": "games",
+		"category": "kids-games",
 		"tagline": "Let the cat in, give it its dinner and watch it curl up to sleep",
 		"theme-color": "#f7e6c4",
 		"screenshot": "/screenshots/toys/catflap.webp"
@@ -66,7 +66,7 @@
 		"url": "/toys/engravery/",
 		"tags": "toy",
 		"text": "",
-		"category": "tools",
+		"category": "trifles",
 		"tagline": "Hide a photo in a field of parallel lines, then squint to see it",
 		"theme-color": "#f6f5f1",
 		"screenshot": "/screenshots/toys/engravery.webp"
@@ -126,7 +126,7 @@
 		"url": "/toys/knottery/",
 		"tags": "toy",
 		"text": "",
-		"category": "tools",
+		"category": "trifles",
 		"tagline": "Draw Celtic knots freehand, and tap a crossing to flip it",
 		"theme-color": "#f2ede3",
 		"screenshot": "/screenshots/toys/knottery.webp"
