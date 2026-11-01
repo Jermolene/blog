@@ -7,13 +7,13 @@ Everything is in `index.html`.
 | Section | What it does |
 |---|---|
 | CSS `:root` tokens | Light/dark theme tokens (fonts: Big Shoulders Display, Instrument Sans, IBM Plex Mono). |
-| `SPEC` | Every slider: key, label, range, step, default, panel group (A = shapes, B = overlays & motion). Adding a parameter = add a SPEC row + uniform + shader use + `buildSVG` use. |
+| `SPEC` | Every slider: key, label, range, step, default, panel group (A = shapes, B = overlays & motion; C = colour & clip holds the three selects, see `GROUPS`). Each group is a `<details>`; double-clicking a control or heading resets it to `DEFAULTS` via `resetKeys`. Adding a parameter = add a SPEC row + uniform + shader use + `buildSVG` use. |
 | `PALETTES` / `DEFAULTS` | Ink/paper pairs. `DEFAULTS` also sets `clip=3` (star rim), `invert=1`, `palette=0`. |
 | `FS` (fragment shader) | The whole pattern, evaluated per pixel with 4× rotated-grid supersampling. One offscreen WebGL canvas (`glc`) renders everything; results are copied to the visible canvas or to explore tiles. |
 | `extent(p)` | World radius that fills the view (`rim` when clip = star rim, else the shapes' outer reach). View half-width = `extent × 1.0089`. |
 | `render(p, target, size, phase)` | Sets uniforms and draws. `target=null` leaves the result in `glc` (used by the explorer, which converts to PNG data URLs). |
 | Explore | 3×3 grid of `div.cell` with background-image tiles. Was canvases originally; Safari stretched them vertically, so tiles are now images scaled with `contain`. |
-| `mutate` / `randomise` | Mutation picks 1–3 SPEC params and nudges by ±strength×range; small chance to flip invert/palette/clip. Randomise biases toward "classic" settings (circles, no twist, 1 layer) about half the time. |
+| `mutate` / `randomise` | Mutation picks 1–3 SPEC params and nudges by ±strength×range; small chance to flip invert/palette/clip. Only groups ticked in the explore box (`allowed`) are mutated; speed never is. Randomise biases toward "classic" settings (circles, no twist, 1 layer) about half the time. |
 | `buildSVG(p, phase)` | Vector export (see below). |
 | Save SVG | Uses the artifact `downloads` capability when `window.claude` exists; standalone it falls back to a blob link. |
 

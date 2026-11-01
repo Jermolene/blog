@@ -37,7 +37,7 @@ It is currently published as a claude.ai artifact at https://claude.ai/artifact/
 | state, `mutate`, `commit` | `p` is the live parameter set and `committed` the last committed one. `hist` is the Back stack (80 deep). `mutate(base)` changes unlocked parameters with probability scaled by the Step slider: ranges get a gaussian nudge, selects a random option, bools flip. It guarantees at least one change. |
 | `buildControls` / `syncControls` | Generate the parameter panel from SPECS. A slider's `input` event triggers a *draft* render. Its `change` event commits to history and regenerates the variants. |
 | `renderMain(draft)` | Dispatches on `view` ('rug', 'cartoon' or 'room'). Draft renders use a low pixels-per-knot value, and a full render follows 260 ms later. `pileKp()` picks pixels per knot under a pixel cap (2.4 M full, 0.7 M draft). Also writes the caption: knots × rows, metres, knots per square inch with a grade label, and knot type. |
-| variants | Eight `mutate(p)` results drawn with the flat renderer. The label under each lists what changed. |
+| explore | `setExplore(on)` swaps the rug in `#loom` for a 3×3 grid (`#thumbs`): this rug in the centre, eight `mutate(p)` results around it, all drawn with the flat renderer at tile size. The label under each lists what changed. Tapping a neighbour commits it and breeds eight more; tapping the centre leaves. The explore box's group checkboxes are the same state as the group Lock buttons (`setLock`). Neighbours are only generated while exploring. |
 | `renderGrammar` | The "Grammar of this rug" parse tree. One branch per layout. Update it when you add layouts. |
 | `LEX` / `drawLex` | Motif lexicon at the bottom of the page, with traditional meanings. |
 | `PRESETS` | Reference rugs (below). `drawPresets`/`markPreset` build the buttons. |
@@ -130,7 +130,7 @@ These presets come from Jeremy's own rugs, matched against photos side by side. 
 
 ## Conventions to keep
 
-- **Exploratorium controls:** keep Randomise, Reset, Back, the 8 variants, per-group locks and the Step slider.
+- **Exploratorium controls:** the panel follows `toys-src/PANELS.md` (2026-11-01): Explore 8 ways · Randomise · Undo (was Back) · Reset · Download PNG; explore box with Variation (was Step), group checkboxes and New neighbours; double-click a label, slider or group heading to reset it to DEFAULTS. Per-group locks stay and mirror the checkboxes.
 - **Spelling and tone:** British spelling in the UI. Copy is plain and specific. Motif meanings are framed as traditional associations, not a code.
 - **Theming:** colours are CSS tokens with light and dark themes (`prefers-color-scheme` plus `[data-theme]` overrides). The page needs a 16 px minimum side gutter and must work at phone width.
 - **New layouts and motifs:** add the option to `OPT`, handle it in `build` and `renderGrammar`, and run the smoke test.

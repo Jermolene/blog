@@ -30,7 +30,7 @@ These apply only while it lives as an artifact. Lift them if it moves to jermole
 | frame state / main loop | Low-res render while moving; strip-wise hi-res build when idle; composite every dirty frame |
 | view operations | Pan, eased zoom about an anchor, inertia, `flyTo` / `stepFlight` |
 | randomise | `hunt()` repeatedly zooms toward high-escape exterior points, using plain doubles |
-| colour fitting & variations | `fitColours` reads back a 184×116 μ buffer and sets the density from its 4th–96th percentile. The variation grid uses fixed mutation "directions" (`muts`) applied to the current state. |
+| colour fitting & variations | `fitColours` reads back a 184×116 μ buffer and sets the density from its 4th–96th percentile. Explore 8 ways (2026-11-01, see `toys-src/PANELS.md`) is a 3×3 grid over the stage: neighbours are mutated in the ticked groups (Location, Colour, Detail), rendered at tile size with a quick low-res pass refined in strips under a per-frame budget (`cost<3e8` in `stepExplore`); colour-only changes recolour finished tiles. |
 
 ### Key mechanisms and invariants
 
@@ -60,7 +60,7 @@ These apply only while it lives as an artifact. Lift them if it moves to jermole
 
 **Other details.**
 - RGBA8 packing needs `gl.disable(gl.DITHER)`. That is already done; don't remove it.
-- `fitColours` and the variation grid share the `thumbIter` / `thumbCol` targets and use `readPixels`. Keep them off the interactive path.
+- `fitColours` and the explorer share the `thumbIter` / `thumbCol` targets and use `readPixels`. Keep them off the interactive path.
 
 ## What was verified
 
@@ -90,7 +90,7 @@ These apply only while it lives as an artifact. Lift them if it moves to jermole
 ## Controls (for reference)
 
 - Drag pans, with glide. Wheel or pinch zooms at the pointer. Double-click or double-tap dives ×4; Shift surfaces.
-- J toggles Julia at the pointer. R randomises, 0 resets, F fits bands, V shuffles the variations, H hides the UI, and arrows and +/− also navigate.
+- J toggles Julia at the pointer. R randomises, 0 resets, F fits bands, V opens explore or rerolls the neighbours, Escape leaves it, H hides the UI, and arrows and +/− also navigate.
 - The companion scope:
   - In parameter mode it shows the Julia set at the pointer; click it to enter Julia mode.
   - In Julia mode it shows the parameter plane; drag in it to morph c.
