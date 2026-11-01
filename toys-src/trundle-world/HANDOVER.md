@@ -1,6 +1,6 @@
 # Trundle World handover
 
-**2026-10-23: integrated into jermolene.com.** The game is now `static-assets/toys/trundle-world/index.html`, with the usual toy tags (PWA links, description, `toy-category` games, theme colour `#7cc8ff`), `icon.svg` and rendered icons. Edit that file directly. This folder (`toys-src/trundle-world/`) keeps the rest. `tools/screenshot.py` expects `index.html` and `node_modules` beside it, and Python Playwright isn't installed on this machine, so `tools/check.mjs` is a Node equivalent. With it, every size, night and Fly ran with no errors from `file://` and http.
+**2026-10-23: integrated into jermolene.com.** The game is now `static-assets/games/trundle-world/index.html`, with the usual toy tags (PWA links, description, `toy-category` games, theme colour `#7cc8ff`), `icon.svg` and rendered icons. Edit that file directly. This folder (`toys-src/trundle-world/`) keeps the rest. `tools/screenshot.py` expects `index.html` and `node_modules` beside it, and Python Playwright isn't installed on this machine, so `tools/check.mjs` is a Node equivalent. With it, every size, night and Fly ran with no errors from `file://` and http.
 
 Trundle World is a toy for young children: a floating low-poly island with roads, a railway, a waterfall, a volcano, dinosaurs, planes, balloons and weather. Everything reacts when tapped. It runs as a single page in a browser on phones, tablets and desktops.
 

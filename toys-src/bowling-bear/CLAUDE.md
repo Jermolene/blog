@@ -144,7 +144,7 @@ This work is based on "Realistic Animated Bear 3D Model" (https://sketchfab.com/
 
 ## Merged into jermolene.com (2026-10-25)
 
-This game is now the "Play round this device" mode of the toy at `static-assets/toys/bowling-bear/index.html` in the blog repo. Since 2026-10-30 that file is built from `src/index.html` here by `toys-src/build.mjs` (see the last section); before then it was edited in place. `handover/bowling-bear.src.html` (once `src/`) and `dist/` are the artifact version at handover and are no longer kept in step. The page also keeps the earlier LAN game (host/join by QR code, practise alone) with its bowler's-eye view and its own pin simulation.
+This game is now the "Play round this device" mode of the toy at `static-assets/games/bowling-bear/index.html` in the blog repo. Since 2026-10-30 that file is built from `src/index.html` here by `toys-src/build.mjs` (see the last section); before then it was edited in place. `handover/bowling-bear.src.html` (once `src/`) and `dist/` are the artifact version at handover and are no longer kept in step. The page also keeps the earlier LAN game (host/join by QR code, practise alone) with its bowler's-eye view and its own pin simulation.
 
 What changed in the merge:
 - **One page, one renderer.** The table game lives in `initTable(renderer, onLeave)`, called the first time the table is opened. It loads cannon-es by dynamic import, builds everything inside that closure and returns `enter()` and `frame(t)`. The alley's `setAnimationLoop` calls `table.frame()` while `inTable` is set. Its DOM ids are prefixed `t-` and its CSS is scoped to `#table`; the lobby's generic rules are scoped to `:is(#lobby,#scanner)`.

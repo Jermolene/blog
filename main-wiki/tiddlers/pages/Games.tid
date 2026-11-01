@@ -1,0 +1,15 @@
+caption: Games
+description: Games and kids games that run in your browser and work offline
+social-closeup: games/marble-flick games/trundle-world games/jumbleword games/catflap
+tags: page
+title: Games
+
+\import [[$:/_Toys/Listing]]
+
+//Games to play. See also the [[toys|Toys]] and the [[tools|Tools]]//
+
+<<toy-listing games>>
+
+!! <span id="kids-games">Kids games</span>
+
+<<toy-listing kids-games>>

@@ -40,7 +40,7 @@ import path from "path";
 import {fileURLToPath} from "url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const toy = path.resolve(here, "../../../static-assets/toys/trackaholic/index.html");
+const toy = path.resolve(here, "../../../static-assets/games/trackaholic/index.html");
 const baselineFile = path.join(here, "baseline.json");
 const args = process.argv.slice(2), has = f => args.includes(f);
 const sets = args.flatMap((a, i) => a === "--set" ? [args[i + 1]] : []).map(a => { const [k, v] = a.split("="); return [k.split("."), +v]; });

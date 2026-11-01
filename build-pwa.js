@@ -1,19 +1,26 @@
 /*
-Generate the files that make the toys index at /toys and each toy beneath it
-installable as Progressive Web Apps. The output goes straight into the
-assembled site, so this runs at the end of bld.sh:
+Generate the files that make the indexes of the toys, games and tools at /toys,
+/games and /tools, and each toy beneath them, installable as Progressive Web
+Apps. The output goes straight into the assembled site, so this runs at the end
+of bld.sh. Each of the three sections is an app of its own, with its own
+service worker, since a worker can only look after the folder it is served
+from. For each <section>:
 
-* `site/toys/manifest.webmanifest` describes the index as an app that bundles
-  every toy, with the toys listed as its shortcuts
-* `site/toys/<name>/manifest.webmanifest` describes each toy as an app of its
-  own, with its name, description and colours taken from the toy's `<meta>`
+* `site/<section>/manifest.webmanifest` describes the index as an app that
+  bundles every toy in the section, with the toys listed as its shortcuts
+* `site/<section>/<name>/manifest.webmanifest` describes each toy as an app of
+  its own, with its name, description and colours taken from the toy's `<meta>`
   tags via the tiddlers written by build-toys.js. The theme colour comes from
   `<meta name="theme-color">` and the short name from `<meta name="toy-short-title">`
-* `site/toys/sw.js`, the service worker copied from `static-assets/toys`,
+* `site/<section>/sw.js`, the service worker copied from `static-assets/toys`,
   has the list of files it caches on installation written into it, along
   with a version derived from their contents
 
-Everything under `site/toys` is precached, except the worker itself, source
+`static-assets/toys` holds the one copy of the files the sections share
+(pwa.js, sw.js and the index's icons), which are copied into `site/games` and
+`site/tools` here.
+
+Everything under `site/<section>` is precached, except the worker itself, source
 maps and licences, and images over LARGE_IMAGE_BYTES (such as the
 Lenticulator's sample photographs), which are cached as they are first used
 instead. The index page precaches its own stylesheet, banner and the toy
@@ -37,22 +44,26 @@ const fs = require("fs"),
 
 const rootDir = __dirname,
 	siteDir = path.join(rootDir,"site"),
-	toysDir = path.join(siteDir,"toys"),
+	sharedDir = path.join(siteDir,"toys"),
 	toysFile = path.join(rootDir,"main-wiki","tiddlers","generated","toys.json");
 
 const LARGE_IMAGE_BYTES = 512 * 1024,
 	IMAGE_EXTENSIONS = /\.(jpe?g|png|gif|webp|avif|bmp|tiff?)$/i,
 	NEVER_PRECACHED = /(^|\/)(sw\.js|precache\.js|\.DS_Store)$|\.(map|md)$/i;
 
-const hub = {
-	name: "Jermolene's Toys",
-	short_name: "Toys",
-	description: "Interactive toys from jermolene.com, all in one app",
-	theme_color: "#5c59a7",
-	background_color: "#ffffff"
+const hubs = {
+	toys: {name: "Jermolene's Toys", short_name: "Toys", description: "Toys from jermolene.com, all in one app"},
+	games: {name: "Jermolene's Games", short_name: "Games", description: "Games from jermolene.com, all in one app"},
+	tools: {name: "Jermolene's Tools", short_name: "Tools", description: "Tools from jermolene.com, all in one app"}
 };
 
-// Files precached for the index page in addition to those under /toys
+const HUB_THEME_COLOR = "#5c59a7",
+	HUB_BACKGROUND_COLOR = "#ffffff";
+
+// The files shared by the sections, copied from site/toys into the others
+const SHARED_FILES = ["pwa.js","sw.js","icon-192.png","icon-512.png","apple-touch-icon.png"];
+
+// Files precached for each index page in addition to those under its section
 const hubExtras = ["/static/static.css","/images/banner.jpg","/favicon.ico"];
 
 function readToys() {
@@ -134,12 +145,11 @@ function writeJson(filePath,data) {
 }
 
 function toyManifest(toy) {
-	const name = toy.url.split("/").filter(Boolean).pop(),
-		dir = path.join(toysDir,name),
+	const dir = path.join(siteDir,toy.route),
 		toyIcons = icons(dir,""),
 		themeColor = toy["theme-color"] || "#ffffff";
 	if(toyIcons.missing.length) {
-		console.log("build-pwa: warning: toys/" + name + " is missing " + toyIcons.missing.join(", ") + "; run build-icons.sh");
+		console.log("build-pwa: warning: " + toy.route + " is missing " + toyIcons.missing.join(", ") + "; run build-icons.sh");
 	}
 	return {
 		name: toy.caption,
@@ -156,26 +166,26 @@ function toyManifest(toy) {
 	};
 }
 
-function hubManifest(toys) {
-	const hubIcons = icons(toysDir,"");
+function hubManifest(section,toys) {
+	const hub = hubs[section],
+		hubIcons = icons(path.join(siteDir,section),"");
 	if(hubIcons.missing.length) {
-		console.log("build-pwa: warning: toys is missing " + hubIcons.missing.join(", ") + "; run build-icons.sh");
+		console.log("build-pwa: warning: " + section + " is missing " + hubIcons.missing.join(", ") + "; run build-icons.sh");
 	}
 	return {
 		name: hub.name,
 		short_name: hub.short_name,
 		description: hub.description,
-		id: "/toys/",
-		start_url: "/toys/",
-		scope: "/toys/",
+		id: "/" + section + "/",
+		start_url: "/" + section + "/",
+		scope: "/" + section + "/",
 		display: "standalone",
-		theme_color: hub.theme_color,
-		background_color: hub.background_color,
+		theme_color: HUB_THEME_COLOR,
+		background_color: HUB_BACKGROUND_COLOR,
 		icons: hubIcons.list,
 		shortcuts: toys.map(toy => {
-			const name = toy.url.split("/").filter(Boolean).pop(),
-				shortcut = {name: toy.caption, description: toy.description, url: toy.url};
-			if(fs.existsSync(path.join(toysDir,name,"icon-192.png"))) {
+			const shortcut = {name: toy.caption, description: toy.description, url: toy.url};
+			if(fs.existsSync(path.join(siteDir,toy.route,"icon-192.png"))) {
 				shortcut.icons = [{src: toy.url + "icon-192.png", sizes: "192x192", type: "image/png"}];
 			}
 			return shortcut;
@@ -184,19 +194,29 @@ function hubManifest(toys) {
 }
 
 function main() {
-	if(!fs.existsSync(toysDir)) {
+	if(!fs.existsSync(sharedDir)) {
 		throw new Error("site/toys does not exist; run bld.sh first");
 	}
 	const toys = readToys();
-	toys.forEach(toy => {
-		const name = toy.url.split("/").filter(Boolean).pop();
-		writeJson(path.join(toysDir,name,"manifest.webmanifest"),toyManifest(toy));
+	// The shared files are copied before any section's worker is filled in
+	Object.keys(hubs).filter(section => section !== "toys").forEach(section => {
+		SHARED_FILES.forEach(file => fs.copyFileSync(path.join(sharedDir,file),path.join(siteDir,section,file)));
 	});
-	writeJson(path.join(toysDir,"manifest.webmanifest"),hubManifest(toys));
-	// The precache: the index page, everything under /toys that qualifies, and
-	// the index page's own dependencies
-	const urls = Array.from(new Set(["/toys/"]
-		.concat(listFiles(toysDir,"/toys/").filter(isPrecached))
+	Object.keys(hubs).forEach(section => {
+		buildSection(section,path.join(siteDir,section),toys.filter(toy => toy.section === section));
+	});
+}
+
+function buildSection(section,sectionDir,toys) {
+	const prefix = "/" + section + "/";
+	toys.forEach(toy => {
+		writeJson(path.join(siteDir,toy.route,"manifest.webmanifest"),toyManifest(toy));
+	});
+	writeJson(path.join(sectionDir,"manifest.webmanifest"),hubManifest(section,toys));
+	// The precache: the index page, everything under the section that
+	// qualifies, and the index page's own dependencies
+	const urls = Array.from(new Set([prefix]
+		.concat(listFiles(sectionDir,prefix).filter(isPrecached))
 		.concat(hubExtras)
 		.concat(toys.map(toy => toy.screenshot).filter(Boolean))))
 		.filter(url => {
@@ -227,14 +247,14 @@ function main() {
 	// bytes change whenever a toy does. Browsers compare the worker script
 	// when checking for updates, but Safari ignores changes to scripts that
 	// it imports, so a separate precache.js left iPads on old versions
-	const workerFile = path.join(toysDir,"sw.js"),
+	const workerFile = path.join(sectionDir,"sw.js"),
 		worker = fs.readFileSync(workerFile,"utf8"),
 		placeholder = 'importScripts("precache.js");';
 	if(!worker.includes(placeholder)) {
 		throw new Error("build-pwa: " + workerFile + " has no " + placeholder + " to replace");
 	}
 	fs.writeFileSync(workerFile,worker.replace(placeholder,() => "self.PRECACHE = " + JSON.stringify(precache,null,"\t") + ";"),"utf8");
-	console.log("build-pwa: wrote manifests for " + toys.length + " toys and a precache of " + urls.length + " files (" + Math.round(totalBytes / 1024) + "KB) plus " + external.size + " external resources, version " + precache.version);
+	console.log("build-pwa: " + section + ": wrote manifests for " + toys.length + " toys and a precache of " + urls.length + " files (" + Math.round(totalBytes / 1024) + "KB) plus " + external.size + " external resources, version " + precache.version);
 }
 
 try {

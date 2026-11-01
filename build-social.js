@@ -174,16 +174,15 @@ function closeupFile(target) {
 
 function toyCards() {
 	return JSON.parse(fs.readFileSync(toysFile,"utf8")).map(toy => {
-		const name = toy.title.replace(/^Toys\//,""),
-			accent = toy["theme-color"] || DEFAULT_ACCENT;
+		const accent = toy["theme-color"] || DEFAULT_ACCENT;
 		return {
-			route: "toys/" + name,
+			route: toy.route,
 			title: toy.caption,
 			line: toy.tagline || toy.description,
 			description: toy.description,
 			kicker: SITE_NAME + " · " + (toyKinds[toy.category] || "Toy"),
 			accent: accent,
-			pictures: [{file: closeupFile("toys/" + name)}]
+			pictures: [{file: closeupFile(toy.route)}]
 		};
 	});
 }

@@ -1,0 +1,56 @@
+title: Page not found
+
+\procedure directory(filter)
+<ul class="jermolene-directory">
+<$list filter=<<filter>>>
+<li><a href={{{ [<currentTiddler>subfilter{$:/config/static/route-filter}addprefix[/]addsuffix[/]] }}}><$transclude field="caption"><$view field="title"/></$transclude></a></li>
+</$list>
+</ul>
+\end
+
+\procedure toy-directory(category)
+<ul class="jermolene-directory">
+<$list filter="[tag[toy]category<category>sort[caption]]">
+<li><a href={{!!url}}><$view field="caption"/></a></li>
+</$list>
+</ul>
+\end
+
+//That page doesn't exist here, perhaps because it has moved. Everything on the site is listed below.//
+
+!! Pages
+
+<ul class="jermolene-directory">
+<li><a href="/">Home</a></li>
+</ul>
+
+<<directory "[tag[page]] -[[index]] +[sort[caption]]">>
+
+!! Games
+
+<<toy-directory games>>
+
+!!! Kids games
+
+<<toy-directory kids-games>>
+
+!! Toys
+
+<<toy-directory trifles>>
+
+!! Tools
+
+<<toy-directory tools>>
+
+!! Posts
+
+<<directory "[tag[post]!tag[unlisted]!sort[created]]">>
+
+!! Archived sites
+
+<ul class="jermolene-directory">
+<li><a href="/archive/cecily/">Cecily</a></li>
+<li><a href="/archive/fridgywiki/">FridgyWiki</a></li>
+<li><a href="/archive/pespot.tiddlyspot.com/">pespot.tiddlyspot.com</a></li>
+<li><a href="/talkytalky/">TalkyTalky</a></li>
+</ul>

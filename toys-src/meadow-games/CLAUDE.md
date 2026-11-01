@@ -21,9 +21,9 @@ claude.ai artifacts, which shapes most of the technical choices below.
 
 ## On jermolene.com
 
-Since 2026-10-24 Meadow Games is also a toy on jermolene.com, at `/toys/meadow-games/`. This project lives in the
+Since 2026-10-24 Meadow Games is also a toy on jermolene.com, at `/games/meadow-games/`. This project lives in the
 blog repo at `toys-src/meadow-games/`, and `python3 tools/build.py --site` writes the toy into
-`static-assets/toys/meadow-games/` as `index.html` (page plus module) and `models.js` (the GLBs as base64 on
+`static-assets/games/meadow-games/` as `index.html` (page plus module) and `models.js` (the GLBs as base64 on
 `window.MEADOW_MODELS`, which `games/app.js` prefers over the inline JSON block). After changing `games/`, run it,
 then commit the toy in the blog repo. `models.js` only changes when the models do. The toy's `icon.svg` and PNG
 icons live only in the blog repo. Animal Meadow and Animal Lineup are not published there.

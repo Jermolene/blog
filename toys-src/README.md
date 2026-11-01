@@ -1,6 +1,6 @@
 # Toy sources
 
-Most toys are a single `index.html` in `static-assets/toys/<name>/`, edited in place: that file is the toy's source, and nothing for it lives here. This folder holds what the others need beyond their published files: source and build scripts for the toys that are built, model-conversion tools, tests, and the working notes and handover documents that came with toys developed elsewhere (mostly as claude.ai artifacts).
+Most toys are a single `index.html` in `static-assets/<section>/<name>/` (the section being `games`, `toys` or `tools`), edited in place: that file is the toy's source, and nothing for it lives here. This folder holds what the others need beyond their published files: source and build scripts for the toys that are built, model-conversion tools, tests, and the working notes and handover documents that came with toys developed elsewhere (mostly as claude.ai artifacts).
 
 Each toy's notes are in its `CLAUDE.md` or `HANDOVER.md`. Read them before making non-trivial changes. The generative trifles share one layout for their controls, explorer and frame-rate readout: see `PANELS.md`.
 

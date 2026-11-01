@@ -1,67 +1,11 @@
 caption: Toys
-description: Games, trifles, kids games and tools that run in your browser and work offline
-social-closeup: toys/knottery toys/trundle-world toys/marblelous toys/catflap
+description: Trifles to play with that run in your browser and work offline
+social-closeup: toys/knottery toys/marblelous toys/radialator toys/sunthesis
 tags: page
 title: Toys
 
-\procedure toy-listing(category)
-<div class="jermolene-toy-listing">
+\import [[$:/_Toys/Listing]]
 
-<$list filter="[tag[toy]category<category>sort[caption]]">
-
-<div class="jermolene-toy">
-
-<$list filter="[all[current]has[screenshot]]" variable="ignore">
-
-<a href={{!!url}} class="jermolene-screenshot-link" tabindex="-1" aria-hidden="true">
-
-<img src={{!!screenshot}} alt="" width="1200" height="800" loading="lazy"/>
-
-</a>
-
-</$list>
-
-<div class="jermolene-toy-text">
-
-!!! <a href={{!!url}}><$view field="caption"/></a>
-
-<$list filter="[all[current]has[description]]" variable="ignore">
-
-<div class="jermolene-toy-description">
-
-<$view field="description"/>
-
-</div>
-
-</$list>
-
-</div>
-
-</div>
-
-</$list>
-
-</div>
-\end
-
-//Interactive things//
-
-@@.jermolene-toy-categories
-<a href="#games">Games</a> · <a href="#trifles">Trifles</a> · <a href="#kids-games">Kids games</a> · <a href="#tools">Tools</a>
-@@
-
-!! <span id="games">Games</span>
-
-<<toy-listing games>>
-
-!! <span id="trifles">Trifles</span>
+//Trifles to play with. See also the [[games|Games]] and the [[tools|Tools]]//
 
 <<toy-listing trifles>>
-
-!! <span id="kids-games">Kids games</span>
-
-<<toy-listing kids-games>>
-
-!! <span id="tools">Tools</span>
-
-<<toy-listing tools>>

@@ -15,15 +15,15 @@ cd ..; node build.mjs quizbuzz        # bank from questions/verified/*.json (QB_
 Produces:
 - `quizbuzz.html`: the page body as published to the Claude artifact (no doctype; the artifact wraps it)
 - `quizbuzz-standalone.html`: same, as a full HTML document (what the tests open)
-- `../../static-assets/toys/quizbuzz/index.html`: the published toy (see "On jermolene.com" below)
+- `../../static-assets/games/quizbuzz/index.html`: the published toy (see "On jermolene.com" below)
 
 `src/index.html` is the source (it was `src/game.html` until 2026-10-30, and the build was `build.py`). `toys-src/build.mjs` builds it like the other multiplayer games (see `toys-src/README.md`): it inlines `../shared/vendor/qrcode.min.js` (qrcode-generator 1.4.4, MIT), `../shared/vendor/jsQR.min.js` (jsQR 1.4.0, Apache-2.0) and the shared LAN code `../shared/lan.js`. `build-hook.mjs` replaces `__BANK__` with the question bank (JSON, XOR-scrambled with the key `quizbuzz`, then base64, so answers are not readable by viewing source) and `/*__FONTS__*/` with base64 woff2 faces (Shrikhand display, Michroma labels, Jost body; all free, OFL).
 
 ## On jermolene.com
 
-This folder lives at `toys-src/quizbuzz/` in the blog repo (until 2026-10-30 it was a separate repo in the gitignored `local/`; its history wasn't carried over). The toy at `static-assets/toys/quizbuzz/index.html` is a **build output**: edit `src/index.html` here and rerun `node build.mjs quizbuzz` in `toys-src`, never the toy directly. The build adds the site's toy `<meta>` tags (description, `toy-category` games, theme colour), `../pwa.js` and the manifest/icon links; the site's shared service worker and generated manifest replace the handover's own `dist/sw.js` and manifest, which are gone. `icon.svg` lives in the toy folder; render it with `./build-icons.sh` in the blog repo. After a rebuild, run `node build-toys.js` and `node build-screenshots.js toys/quizbuzz` there.
+This folder lives at `toys-src/quizbuzz/` in the blog repo (until 2026-10-30 it was a separate repo in the gitignored `local/`; its history wasn't carried over). The toy at `static-assets/games/quizbuzz/index.html` is a **build output**: edit `src/index.html` here and rerun `node build.mjs quizbuzz` in `toys-src`, never the toy directly. The build adds the site's toy `<meta>` tags (description, `toy-category` games, theme colour), `../pwa.js` and the manifest/icon links; the site's shared service worker and generated manifest replace the handover's own `dist/sw.js` and manifest, which are gone. `icon.svg` lives in the toy folder; render it with `./build-icons.sh` in the blog repo. After a rebuild, run `node build-toys.js` and `node build-screenshots.js games/quizbuzz` there.
 
-Live at `https://jermolene.com/toys/quizbuzz/#host`.
+Live at `https://jermolene.com/games/quizbuzz/#host`.
 
 ## Page modes (URL hash)
 

@@ -1,6 +1,6 @@
 # Lala & Yala: handover
 
-**2026-10-24: integrated into jermolene.com.** The game is now `static-assets/toys/lala-yala/index.html`: the fragment wrapped in the usual toy skeleton, with PWA links, a description, `toy-category` games and theme colour `#8fd6f5`, plus `icon.svg` and rendered icons. Edit that file directly. The PWA/offline wrapper suggested below is therefore done.
+**2026-10-24: integrated into jermolene.com.** The game is now `static-assets/games/lala-yala/index.html`: the fragment wrapped in the usual toy skeleton, with PWA links, a description, `toy-category` games and theme colour `#8fd6f5`, plus `icon.svg` and rendered icons. Edit that file directly. The PWA/offline wrapper suggested below is therefore done.
 
 `lala-yala.html` is a single-file collection of 2D tap-only games for toddlers. It belongs to Jeremy's series of toddler single-page apps; Animal Island and Trundle World are siblings, but those two are 3D. It has no build step and no dependencies apart from the Google Fonts stylesheet for Baloo 2, which falls back to rounded system fonts. Open the file in a browser to run it.
 

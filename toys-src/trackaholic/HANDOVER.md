@@ -2,7 +2,7 @@
 
 Replaces Fall Line (the snowboard game). Fall Line was hard to play, and it had bugs: you could ride under the mountain, and trees floated.
 
-Trackaholic is a car race through a magical dusk valley, played alone against bots or with phones joining over the same Wi-Fi. It is published at `jermolene.com/toys/trackaholic/` as a single self-contained HTML file, built from `toys-src/trackaholic/src/` by `node build.mjs trackaholic` (in `toys-src`): edit the source there, not the published file. The build inlines the car model, three.js 0.160 (bundled from `node_modules` by esbuild), qrcode-generator, jsQR and the shared LAN code, `toys-src/shared/lan.js`; see `toys-src/README.md`.
+Trackaholic is a car race through a magical dusk valley, played alone against bots or with phones joining over the same Wi-Fi. It is published at `jermolene.com/games/trackaholic/` as a single self-contained HTML file, built from `toys-src/trackaholic/src/` by `node build.mjs trackaholic` (in `toys-src`): edit the source there, not the published file. The build inlines the car model, three.js 0.160 (bundled from `node_modules` by esbuild), qrcode-generator, jsQR and the shared LAN code, `toys-src/shared/lan.js`; see `toys-src/README.md`.
 
 Renamed from Glimmerway on 2026-10-30. Settings are stored under `trackaholic.*`, so old local settings and best times reset. The data channel is `trackaholic`; codes start `TA4` (see Network), so devices must all run the same version.
 

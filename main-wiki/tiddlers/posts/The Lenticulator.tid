@@ -3,17 +3,17 @@ creator: jeremy
 description: A web toy for printing and folding pictures that blend from one into another as you move past them
 modified: 20220109094816413
 modifier: jeremy
-social-closeup: toys/lenticulator
+social-closeup: tools/lenticulator
 tags: post
 title: The Lenticulator
 
-[[The Lenticulator|https://jermolene.com/toys/lenticulator/]] is a web toy that helps you print and fold eye-baffling illusions whereby one picture blends into another as the observer moves from one side to the other.
+[[The Lenticulator|https://jermolene.com/tools/lenticulator/]] is a web toy that helps you print and fold eye-baffling illusions whereby one picture blends into another as the observer moves from one side to the other.
 
 Take two photos, feed them into the app then print, score and fold. Nothing leaves your computer, and it is all open source
 
-<a href="https://jermolene.com/toys/lenticulator/">
+<a href="https://jermolene.com/tools/lenticulator/">
 
-[img width=400px [https://jermolene.com/toys/lenticulator/screenshot.png]]
+[img width=400px [https://jermolene.com/tools/lenticulator/screenshot.png]]
 
 </a>
 

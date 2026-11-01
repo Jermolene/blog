@@ -1,13 +1,15 @@
 /*
-Generate the tiddlers that drive the /toys index page.
+Generate the tiddlers that drive the /toys, /games and /tools index pages.
 
-Each immediate subdirectory of `static-assets/toys` that contains an
-`index.html` becomes a tiddler tagged `toy`, with its caption and description
+Each immediate subdirectory of `static-assets/toys`, `static-assets/games` and
+`static-assets/tools` that contains an `index.html` becomes a tiddler tagged
+`toy`, with its `route` (eg `games/jumbleword`) in a field of that name and with its caption and description
 read from the toy's own HTML `<title>` and `<meta>` tags. The caption comes from
 `<meta name="toy-title">`, falling back to `og:title` and then `<title>`; the
 description from `<meta name="toy-description">`, falling back to the standard
 `description` and then `og:description`; and its category, one of `games`,
-`trifles`, `kids-games` or `tools`, from `<meta name="toy-category">`. The toy is therefore
+`trifles`, `kids-games` or `tools`, from `<meta name="toy-category">`. Games and kids games live in
+games/, trifles in toys/ and tools in tools/. The toy is therefore
 the single source of truth for its own listing: adding, renaming or
 re-describing a toy automatically updates the index at build time.
 
@@ -30,9 +32,12 @@ const fs = require("fs"),
 // The categories the toys index is divided into, in the order it lists them
 const categories = ["games","trifles","kids-games","tools"];
 
+// The sections of the site that the toys are published in
+const sections = ["toys","games","tools"];
+
 const rootDir = __dirname,
-	toysDir = path.join(rootDir,"static-assets","toys"),
-	screenshotsDir = path.join(rootDir,"static-assets","screenshots","toys"),
+	staticDir = path.join(rootDir,"static-assets"),
+	screenshotsDir = path.join(staticDir,"screenshots"),
 	outputFile = path.join(rootDir,"main-wiki","tiddlers","generated","toys.json");
 
 function decodeEntities(text) {
@@ -72,10 +77,10 @@ function parseMetaTags(html) {
 	return metaTags;
 }
 
-function readToy(name) {
-	const indexFile = path.join(toysDir,name,"index.html");
+function readToy(section,name) {
+	const route = section + "/" + name,
+		indexFile = path.join(staticDir,route,"index.html");
 	if(!fs.existsSync(indexFile)) {
-		console.log("build-toys: skipping toys/" + name + " as it has no index.html");
 		return null;
 	}
 	const html = fs.readFileSync(indexFile,"utf8"),
@@ -89,20 +94,22 @@ function readToy(name) {
 		backgroundColor = metaTags["toy-background-color"] || "",
 		category = metaTags["toy-category"] || "";
 	if(!description) {
-		console.log("build-toys: warning: toys/" + name + " has no description meta tag");
+		console.log("build-toys: warning: " + route + " has no description meta tag");
 	}
 	const toy = {
 		title: "Toys/" + name,
 		caption: caption,
 		description: description,
-		url: "/toys/" + name + "/",
+		route: route,
+		section: section,
+		url: "/" + route + "/",
 		tags: "toy",
 		text: ""
 	};
 	if(categories.indexOf(category) !== -1) {
 		toy.category = category;
 	} else {
-		console.log("build-toys: warning: toys/" + name + " has " + (category ? "an unknown category '" + category + "'" :
+		console.log("build-toys: warning: " + route + " has " + (category ? "an unknown category '" + category + "'" :
 			"no toy-category meta tag") + "; it should be one of " + categories.join(", "));
 	}
 	if(shortCaption) {
@@ -111,27 +118,27 @@ function readToy(name) {
 	if(tagline) {
 		toy.tagline = tagline;
 	} else {
-		console.log("build-toys: warning: toys/" + name + " has no toy-tagline meta tag");
+		console.log("build-toys: warning: " + route + " has no toy-tagline meta tag");
 	}
 	if(themeColor) {
 		toy["theme-color"] = themeColor;
 	} else {
-		console.log("build-toys: warning: toys/" + name + " has no theme-color meta tag");
+		console.log("build-toys: warning: " + route + " has no theme-color meta tag");
 	}
 	if(backgroundColor) {
 		toy["background-color"] = backgroundColor;
 	}
-	if(fs.existsSync(path.join(screenshotsDir,name + ".webp"))) {
-		toy.screenshot = "/screenshots/toys/" + name + ".webp";
+	if(fs.existsSync(path.join(screenshotsDir,route + ".webp"))) {
+		toy.screenshot = "/screenshots/" + route + ".webp";
 	} else {
-		console.log("build-toys: warning: toys/" + name + " has no screenshot; run build-screenshots.js");
+		console.log("build-toys: warning: " + route + " has no screenshot; run build-screenshots.js");
 	}
 	return toy;
 }
 
-const toys = fs.readdirSync(toysDir,{withFileTypes: true})
+const toys = sections.flatMap(section => fs.readdirSync(path.join(staticDir,section),{withFileTypes: true})
 	.filter(entry => entry.isDirectory())
-	.map(entry => readToy(entry.name))
+	.map(entry => readToy(section,entry.name)))
 	.filter(toy => !!toy)
 	.sort((a,b) => a.caption.toLowerCase().localeCompare(b.caption.toLowerCase()));
 

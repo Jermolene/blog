@@ -27,7 +27,7 @@ else
 	echo "build-icons: magick not found (brew install imagemagick); skipping the site icon"
 fi
 
-for svg in static-assets/toys/*/icon.svg; do
+for svg in static-assets/{toys,games,tools}/*/icon.svg; do
 	[ -f "$svg" ] || continue
 	dir="$(dirname "$svg")"
 	rsvg-convert -w 192 -h 192 "$svg" -o "$dir/icon-192.png" || exit 1

@@ -1,13 +1,13 @@
 // LAN play in all three games, through toys-src/shared/lan.js: a host and two phones in separate Chromium processes.
 //   node shared/test/lan.mjs [quizbuzz|bowling-bear|trackaholic ...]      (from toys-src, after node build.mjs)
-// Serves static-assets/toys on port 8770. The host's camera is bypassed: each reply code is handed to the host as
+// Serves static-assets/games on port 8770. The host's camera is bypassed: each reply code is handed to the host as
 // the camera (or a paste) would. Checks joining by link and by a code put into an open page, the QR sizes, a phone
 // coming back over a spare after its link is killed or goes silent, a reloaded phone rejoining into its old place,
 // the messages for codes from an older version or another game, and (Trackaholic) a racer who drops mid-race.
 import {chromium} from 'playwright';
 import http from 'node:http';import fs from 'node:fs';import path from 'node:path';import {fileURLToPath} from 'node:url';
 
-const ROOT=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../../static-assets/toys'),PORT=8770,BASE=`http://127.0.0.1:${PORT}/`;
+const ROOT=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../../static-assets/games'),PORT=8770,BASE=`http://127.0.0.1:${PORT}/`;
 const srv=http.createServer((q,r)=>{let u=decodeURIComponent(q.url.split(/[?#]/)[0]);if(u.endsWith('/'))u+='index.html';
   fs.readFile(path.join(ROOT,u),(e,d)=>{if(e){r.writeHead(404);return r.end()}r.writeHead(200,{'content-type':u.endsWith('.html')?'text/html':'text/javascript'});r.end(d)})}).listen(PORT);
 const ARGS=['--disable-features=WebRtcHideLocalIpsWithMdns','--use-fake-ui-for-media-stream','--use-fake-device-for-media-stream','--use-angle=swiftshader','--enable-unsafe-swiftshader'];
@@ -53,7 +53,7 @@ async function run(name){
   }
 
   let url=await invite();
-  const site=url.replace(BASE,'https://jermolene.com/toys/');
+  const site=url.replace(BASE,'https://jermolene.com/games/');
   // Ann opens the link, as from the phone's camera app
   const ann=await open('Ann');await ann.goto(url);await ann.waitForTimeout(300);
   check(!/[A-Z]{2}\d/.test(await ann.evaluate(()=>location.hash)),'the code is taken out of the address');

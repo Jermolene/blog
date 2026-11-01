@@ -1,6 +1,9 @@
 /*
-Service worker for the toys index at /toys/ and every toy beneath it. It is
-registered by pwa.js, which the index page and each toy include.
+Service worker for one section of the site, the toys at /toys/, the games at
+/games/ or the tools at /tools/: its index and every toy beneath it. build-pwa.js
+copies it into each section, and it is registered by pwa.js, which the index
+pages and each toy include. The workers share the origin's caches, so each
+names its caches after its own section and only ever deletes its own.
 
 build-pwa.js replaces the importScripts() line below with the list of files
 to cache, along with a version derived from their contents. Any change to a
@@ -26,8 +29,9 @@ responses can still be stored.
 
 importScripts("precache.js");
 
-const PRECACHE = "toys-precache-" + self.PRECACHE.version,
-	RUNTIME = "toys-runtime";
+const SECTION = new URL(self.registration.scope).pathname.split("/").filter(Boolean)[0] || "toys",
+	PRECACHE = SECTION + "-precache-" + self.PRECACHE.version,
+	RUNTIME = SECTION + "-runtime";
 
 self.addEventListener("install",event => {
 	event.waitUntil((async () => {
@@ -52,7 +56,7 @@ self.addEventListener("activate",event => {
 	event.waitUntil((async () => {
 		const keys = await caches.keys();
 		await Promise.all(keys
-			.filter(key => key !== PRECACHE && key !== RUNTIME)
+			.filter(key => key.startsWith(SECTION + "-") && key !== PRECACHE && key !== RUNTIME)
 			.map(key => caches.delete(key)));
 		await self.clients.claim();
 	})());

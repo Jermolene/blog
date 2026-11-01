@@ -1,8 +1,8 @@
-// Node alternative to screenshot.py (npm install in toys-src for playwright). Serve static-assets/toys on port 8767
+// Node alternative to screenshot.py (npm install in toys-src for playwright). Serve static-assets/games on port 8767
 // (python3 -m http.server 8767) and run: OUT=<dir> node check.mjs. Checks file:// and http, all sizes, night and Fly, for errors.
 import { chromium } from 'playwright';
 import path from 'node:path'; import { fileURLToPath } from 'node:url';
-const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../../static-assets/toys');
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../../static-assets/games');
 const out=process.env.OUT;
 const b=await chromium.launch({args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
 for(const [tag,url] of [['file','file://'+root+'/trundle-world/index.html'],['http','http://127.0.0.1:8767/trundle-world/']]){

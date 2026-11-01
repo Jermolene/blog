@@ -10,7 +10,7 @@ usage: python3 tools/build.py            # builds all apps
        python3 tools/build.py games      # builds one
        python3 tools/build.py --site     # builds the jermolene.com toy
 
-The --site build writes Meadow Games into the blog repo at static-assets/toys/meadow-games as
+The --site build writes Meadow Games into the blog repo at static-assets/games/meadow-games as
 index.html (the toy's skeleton, PWA and index tags, shell and module) plus models.js, which sets
 window.MEADOW_MODELS. Keeping the 7 MB of models in their own file means a code change doesn't add
 another 7 MB to the blog's history, and a classic script still loads when the page is opened from disk.
@@ -26,7 +26,7 @@ def models_block():
     d = {p.stem: base64.b64encode(p.read_bytes()).decode() for p in sorted((ROOT / 'assets/animals').glob('*.glb'))}
     return '<script type="application/json" id="models">' + json.dumps(d) + '</script>'
 
-SITE = ROOT.parent.parent / 'static-assets/toys/meadow-games'
+SITE = ROOT.parent.parent / 'static-assets/games/meadow-games'
 SITE_HEAD = ('<!doctype html><!-- Built by toys-src/meadow-games/tools/build.py --site in the blog repo: edit the source there, not this file --><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>' + '''
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#bfe3f2">

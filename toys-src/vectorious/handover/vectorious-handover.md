@@ -2,7 +2,7 @@
 
 ## Context
 
-Vectorious (https://jermolene.com/toys/vectorious/) is a single-file, browser-only tool:
+Vectorious (https://jermolene.com/tools/vectorious/) is a single-file, browser-only tool:
 image in → threshold to 1-bit → potrace.js → SVG/PDF out. Current controls: threshold
 (manual or Otsu), invert, ignore specks (turdsize), corner smoothing (alphamax). It embeds
 potrace.js (GPL v2+; page is GPL v3), jsPDF + svg2pdf.js (MIT), pdf.js for .jp2 (Apache-2.0).

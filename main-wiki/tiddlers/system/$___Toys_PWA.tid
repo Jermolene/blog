@@ -1,8 +1,10 @@
 tags: $:/tags/Static/HTML/Head
 title: $:/_Toys/PWA
 
-<$list filter="[<currentTiddler>match[Toys]]" variable="ignore">
-<link rel="manifest" href="/toys/manifest.webmanifest">
+<$list filter="[<currentTiddler>match[Toys]] [<currentTiddler>match[Games]] [<currentTiddler>match[Tools]]" variable="ignore">
+<$let section={{{ [<currentTiddler>lowercase[]] }}}>
+<link rel="manifest" href={{{ [<section>addprefix[/]addsuffix[/manifest.webmanifest]] }}}>
 <meta name="theme-color" content="#5c59a7">
-<link rel="apple-touch-icon" href="/toys/apple-touch-icon.png">
+<link rel="apple-touch-icon" href={{{ [<section>addprefix[/]addsuffix[/apple-touch-icon.png]] }}}>
+</$let>
 </$list>

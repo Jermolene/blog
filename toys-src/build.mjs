@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Builds the toys that have a source folder here into single self-contained pages:
-// toys-src/<toy>/src/index.html -> static-assets/toys/<toy>/index.html
+// toys-src/<toy>/src/index.html -> static-assets/<section>/<toy>/index.html, where the section is games, toys or tools
 //
 //   node build.mjs              every toy with a src/index.html
 //   node build.mjs trackaholic  just the ones named
@@ -18,7 +18,8 @@ import {fileURLToPath, pathToFileURL} from 'node:url';
 import * as esbuild from 'esbuild';
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
-const SITE = resolve(ROOT, '../static-assets/toys');
+const SITE = resolve(ROOT, '../static-assets');
+const SECTIONS = ['games', 'toys', 'tools'];
 const exists = p => access(p).then(() => true, () => false);
 
 // a script's text can't contain "</script" inside an inline <script>; "<\/script" means the same in JS strings and regexes
@@ -57,7 +58,10 @@ async function build(toy) {
   const note = `<!-- Built by toys-src/build.mjs from toys-src/${toy}/src/ in the blog repo: edit the source there, not this file -->\n`;
   html = /^<!doctype html>\n/i.test(html) ? html.replace(/^(<!doctype html>\n)/i, '$1' + note) : note + html;
   if (hook.after) html = await hook.after(html, {dir, srcDir});
-  const out = join(SITE, toy, 'index.html');
+  // the toy is built into whichever section it is already published in
+  const section = (await Promise.all(SECTIONS.map(async s => await exists(join(SITE, s, toy)) ? s : null))).find(Boolean);
+  if (!section) throw new Error(`${toy}: no static-assets/<section>/${toy} folder to build into`);
+  const out = join(SITE, section, toy, 'index.html');
   await writeFile(out, html);
   console.log(`${toy}: ${relative(process.cwd(), out)} (${Math.round(html.length / 1024)} KB)`);
 }

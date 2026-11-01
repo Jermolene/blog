@@ -3,7 +3,7 @@ Capture screenshots of the toys and other interactive pages on the site, for
 use as thumbnails in listings and posts.
 
 Each target is a folder that is published verbatim: every toy in
-`static-assets/toys`, plus the extra pages listed in `extraTargets`. The
+`static-assets/toys`, `static-assets/games` and `static-assets/tools`, plus the extra pages listed in `extraTargets`. The
 screenshot of the page published at `/<path>/` is saved as
 `static-assets/screenshots/<path>.webp`, and so is published at
 `/screenshots/<path>.webp`.
@@ -58,7 +58,7 @@ const VIEWPORT = {width: 1200, height: 800},
 	SETTLE_DELAY = 1000,
 	NAVIGATION_TIMEOUT = 30000;
 
-// Pages published from somewhere other than static-assets/toys. `dir` is the
+// Pages published from somewhere other than the toys' folders. `dir` is the
 // folder that is served, and `source` the folder whose changes trigger a
 // recapture (defaults to `dir`)
 const extraTargets = [
@@ -90,37 +90,37 @@ const recipes = {
 		}
 		await page.drag(points);
 	},
-	"toys/jpegulator": async page => {
+	"tools/jpegulator": async page => {
 		await page.click("#samples2");
 		await page.wait(2000);
 	},
-	"toys/lenticulator": async page => {
+	"tools/lenticulator": async page => {
 		await page.scrollTo("h2");
 	},
 	"toys/mimic": async page => {
 		await page.click("button[onclick]");
 	},
-	"toys/catflap": async page => {
+	"games/catflap": async page => {
 		// Let the cat in, and wait for it to settle under the shelf thinking of its dinner
 		await page.click("#game");
 		await page.wait(9000);
 	},
-	"toys/animal-island": async page => {
+	"games/animal-island": async page => {
 		// Press Start so that the island is shown instead of the start screen
 		await page.click("#go");
 		await page.wait(2000);
 	},
-	"toys/meadow-games": async page => {
+	"games/meadow-games": async page => {
 		// Wait for the models to be decoded and the herd to settle behind the tiles
 		await page.evaluate(`new Promise(resolve => { const check = () => window.__meadow ? resolve(true) : setTimeout(check,200); check(); })`);
 		await page.wait(4000);
 	},
-	"toys/marble-flick": async page => {
+	"games/marble-flick": async page => {
 		// Start a game so that the board is shown instead of the setup card
 		await page.click("#startBtn");
 		await page.wait(2000);
 	},
-	"toys/jumbleword": async page => {
+	"games/jumbleword": async page => {
 		// Dismiss the opening card, let the balls drop into the rack, then
 		// spell the longest word in the puzzle so that the card shows a word
 		// found, and wait for the celebration to finish
@@ -168,10 +168,10 @@ const recipes = {
 const closeups = {
 	"archive/cecily": {clip: {x: 120, y: 80, width: 640, height: 640}},
 	"talkytalky": {clip: {x: 300, y: 320, width: 330, height: 330}},
-	"toys/animal-island": {clip: {x: 300, y: 170, width: 520, height: 520}},
+	"games/animal-island": {clip: {x: 300, y: 170, width: 520, height: 520}},
 	"toys/bear-beat": {clip: {x: 390, y: 200, width: 420, height: 420}},
 	"toys/blobbles": {clip: {x: 560, y: 100, width: 520, height: 520}},
-	"toys/bowling-bear": {
+	"games/bowling-bear": {
 		// Practise alone, to show the bear by the pins at the end of the lane
 		recipe: async page => {
 			await page.click("#bSolo");
@@ -179,26 +179,26 @@ const closeups = {
 		},
 		clip: {x: 440, y: 230, width: 420, height: 420}
 	},
-	"toys/catflap": {clip: {x: 560, y: 120, width: 580, height: 580}},
+	"games/catflap": {clip: {x: 560, y: 120, width: 580, height: 580}},
 	"toys/engravery": {clip: {x: 170, y: 160, width: 580, height: 580}},
 	"toys/flowing-field": {clip: {x: 300, y: 150, width: 500, height: 500}},
 	"toys/fractaliser": {clip: {x: 330, y: 110, width: 500, height: 500}},
-	"toys/jpegulator": {clip: {x: 330, y: 230, width: 560, height: 560}},
-	"toys/jumbleword": {clip: {x: 10, y: 250, width: 540, height: 167}},
+	"tools/jpegulator": {clip: {x: 330, y: 230, width: 560, height: 560}},
+	"games/jumbleword": {clip: {x: 10, y: 250, width: 540, height: 167}},
 	"toys/knottery": {clip: {x: 300, y: 120, width: 600, height: 600}},
-	"toys/lala-yala": {clip: {x: 345, y: 200, width: 560, height: 560}},
-	"toys/lenticulator": {clip: {x: 33, y: 253, width: 1132, height: 314}},
-	"toys/marble-flick": {clip: {x: 250, y: 180, width: 600, height: 600}},
+	"games/lala-yala": {clip: {x: 345, y: 200, width: 560, height: 560}},
+	"tools/lenticulator": {clip: {x: 33, y: 253, width: 1132, height: 314}},
+	"games/marble-flick": {clip: {x: 250, y: 180, width: 600, height: 600}},
 	"toys/marblelous": {clip: {x: 560, y: 90, width: 570, height: 570}},
-	"toys/meadow-games": {clip: {x: 180, y: 150, width: 620, height: 620}},
+	"games/meadow-games": {clip: {x: 180, y: 150, width: 620, height: 620}},
 	"toys/mimic": {clip: {x: 30, y: 300, width: 500, height: 500}},
-	"toys/over-underiser": {clip: {x: 290, y: 90, width: 620, height: 620}},
-	"toys/quizbuzz": {clip: {x: 160, y: 0, width: 600, height: 600}},
+	"tools/over-underiser": {clip: {x: 290, y: 90, width: 620, height: 620}},
+	"games/quizbuzz": {clip: {x: 160, y: 0, width: 600, height: 600}},
 	"toys/radialator": {clip: {x: 150, y: 173, width: 560, height: 560}},
 	"toys/rug-addict": {clip: {x: 155, y: 250, width: 315, height: 315}},
 	"toys/spotty-sphericle": {clip: {x: 110, y: 90, width: 590, height: 590}},
 	"toys/sunthesis": {clip: {x: 140, y: 110, width: 580, height: 580}},
-	"toys/trackaholic": {
+	"games/trackaholic": {
 		// Race alone, holding the accelerator, to show the car under the start
 		// arch with the bots
 		recipe: async page => {
@@ -210,9 +210,9 @@ const closeups = {
 		},
 		clip: {x: 240, y: 60, width: 720, height: 720}
 	},
-	"toys/trundle-world": {clip: {x: 300, y: 60, width: 640, height: 640}},
-	"toys/tunerful": {clip: {x: 320, y: 50, width: 560, height: 560}},
-	"toys/vectorious": {
+	"games/trundle-world": {clip: {x: 300, y: 60, width: 640, height: 640}},
+	"tools/tunerful": {clip: {x: 320, y: 50, width: 560, height: 560}},
+	"tools/vectorious": {
 		// The quantised bitmap beside the traced vector, further down the page
 		recipe: async page => {
 			await page.scrollTo("#bit");
@@ -236,22 +236,27 @@ function writeManifest(manifest) {
 	fs.writeFileSync(manifestFile,JSON.stringify(sorted,null,"\t") + "\n","utf8");
 }
 
-// Folders in static-assets/toys without an index.html, such as `cat`, hold code
-// shared between toys. A toy whose page refers to `../<folder>/` is recaptured
-// when that folder changes too
+// The toys are published in these folders of static-assets. Folders in them
+// without an index.html, such as `games/cat`, hold code shared between toys. A
+// toy whose page refers to `../<folder>/` is recaptured when that folder
+// changes too
+const sections = ["toys","games","tools"];
+
 function findTargets() {
-	const toysDir = path.join(staticDir,"toys"),
-		folders = fs.readdirSync(toysDir,{withFileTypes: true}).filter(entry => entry.isDirectory()).map(entry => entry.name),
-		isToy = name => fs.existsSync(path.join(toysDir,name,"index.html")),
-		shared = folders.filter(name => !isToy(name)),
-		toys = folders.filter(isToy).map(name => {
-			const html = fs.readFileSync(path.join(toysDir,name,"index.html"),"utf8");
+	const toys = sections.flatMap(section => {
+		const sectionDir = path.join(staticDir,section),
+			folders = fs.readdirSync(sectionDir,{withFileTypes: true}).filter(entry => entry.isDirectory()).map(entry => entry.name),
+			isToy = name => fs.existsSync(path.join(sectionDir,name,"index.html")),
+			shared = folders.filter(name => !isToy(name));
+		return folders.filter(isToy).map(name => {
+			const html = fs.readFileSync(path.join(sectionDir,name,"index.html"),"utf8");
 			return {
-				path: "toys/" + name,
-				dir: path.join("static-assets","toys",name),
-				shared: shared.filter(folder => html.includes("../" + folder + "/")).map(folder => path.join("static-assets","toys",folder))
+				path: section + "/" + name,
+				dir: path.join("static-assets",section,name),
+				shared: shared.filter(folder => html.includes("../" + folder + "/")).map(folder => path.join("static-assets",section,folder))
 			};
 		});
+	});
 	return toys.concat(extraTargets).map(target => Object.assign({
 		source: target.dir,
 		outputFile: path.join(screenshotsDir,target.path + ".webp"),
