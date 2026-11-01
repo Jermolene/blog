@@ -128,7 +128,7 @@
 	{
 		"title": "Toys/jumbleword",
 		"caption": "Jumbleword",
-		"description": "Five, six or seven lettered balls land in the rack: spell every word hidden in them to fill the card, and shout house when one word uses every ball",
+		"description": "Four, five, six or seven lettered balls land in the rack: spell every word hidden in them to fill the card, and shout house when one word uses every ball",
 		"route": "games/jumbleword",
 		"section": "games",
 		"url": "/games/jumbleword/",

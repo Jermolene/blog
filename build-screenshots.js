@@ -196,7 +196,7 @@ const closeups = {
 	"toys/flowing-field": {clip: {x: 300, y: 150, width: 500, height: 500}},
 	"toys/fractaliser": {clip: {x: 330, y: 110, width: 500, height: 500}},
 	"tools/jpegulator": {clip: {x: 330, y: 230, width: 560, height: 560}},
-	"games/jumbleword": {clip: {x: 10, y: 250, width: 540, height: 167}},
+	"games/jumbleword": {clip: {x: 40, y: 228, width: 480, height: 480}},
 	"toys/knottery": {clip: {x: 300, y: 120, width: 600, height: 600}},
 	"games/lala-yala": {clip: {x: 345, y: 200, width: 560, height: 560}},
 	"tools/lenticulator": {clip: {x: 33, y: 253, width: 1132, height: 314}},
