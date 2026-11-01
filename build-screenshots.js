@@ -115,6 +115,25 @@ const recipes = {
 		await page.evaluate(`new Promise(resolve => { const check = () => window.__meadow ? resolve(true) : setTimeout(check,200); check(); })`);
 		await page.wait(4000);
 	},
+	"games/bowling-bear": async page => {
+		// Practise alone, to show the bear by the pins at the end of the lane
+		await page.click("#bSolo");
+		await page.wait(4000);
+	},
+	"games/quizbuzz": async page => {
+		// Start the practice game with the robots, to show a question
+		await page.click("#bStart");
+		await page.wait(12000);
+	},
+	"games/trackaholic": async page => {
+		// Race alone, holding the accelerator, to show the car under the start
+		// arch with the bots
+		await page.evaluate(`new Promise(resolve => { const check = () => document.getElementById("bSolo").disabled ? setTimeout(check,200) : resolve(true); check(); })`);
+		await page.click("#bSolo");
+		await page.wait(3000);
+		await page.evaluate(`dispatchEvent(new KeyboardEvent("keydown",{code: "ArrowUp"}))`);
+		await page.wait(4000);
+	},
 	"games/marble-flick": async page => {
 		// Start a game so that the board is shown instead of the setup card
 		await page.click("#startBtn");
@@ -171,14 +190,7 @@ const closeups = {
 	"games/animal-island": {clip: {x: 300, y: 170, width: 520, height: 520}},
 	"toys/bear-beat": {clip: {x: 390, y: 200, width: 420, height: 420}},
 	"toys/blobbles": {clip: {x: 560, y: 100, width: 520, height: 520}},
-	"games/bowling-bear": {
-		// Practise alone, to show the bear by the pins at the end of the lane
-		recipe: async page => {
-			await page.click("#bSolo");
-			await page.wait(4000);
-		},
-		clip: {x: 440, y: 230, width: 420, height: 420}
-	},
+	"games/bowling-bear": {clip: {x: 440, y: 230, width: 420, height: 420}},
 	"games/catflap": {clip: {x: 560, y: 120, width: 580, height: 580}},
 	"toys/engravery": {clip: {x: 170, y: 160, width: 580, height: 580}},
 	"toys/flowing-field": {clip: {x: 300, y: 150, width: 500, height: 500}},
@@ -198,18 +210,7 @@ const closeups = {
 	"toys/rug-addict": {clip: {x: 155, y: 250, width: 315, height: 315}},
 	"toys/spotty-sphericle": {clip: {x: 110, y: 90, width: 590, height: 590}},
 	"toys/sunthesis": {clip: {x: 140, y: 110, width: 580, height: 580}},
-	"games/trackaholic": {
-		// Race alone, holding the accelerator, to show the car under the start
-		// arch with the bots
-		recipe: async page => {
-			await page.evaluate(`new Promise(resolve => { const check = () => document.getElementById("bSolo").disabled ? setTimeout(check,200) : resolve(true); check(); })`);
-			await page.click("#bSolo");
-			await page.wait(3000);
-			await page.evaluate(`dispatchEvent(new KeyboardEvent("keydown",{code: "ArrowUp"}))`);
-			await page.wait(4000);
-		},
-		clip: {x: 240, y: 60, width: 720, height: 720}
-	},
+	"games/trackaholic": {clip: {x: 240, y: 60, width: 720, height: 720}},
 	"games/trundle-world": {clip: {x: 300, y: 60, width: 640, height: 640}},
 	"tools/tunerful": {clip: {x: 320, y: 50, width: 560, height: 560}},
 	"tools/vectorious": {
