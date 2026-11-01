@@ -386,7 +386,7 @@ function terrainH(x,z){
   return fx+fz<=1?a+fx*(b-a)+fz*(c-a):d+(1-fx)*(c-d)+(1-fz)*(b-d);
 }
 // ground under a point: the road plane where the road is, otherwise the terrain triangles
-const GQ={};
+const GQ={},RQ={};
 function groundH(x,z,hint=-1){
   const h=terrainH(x,z);trackQuery(x,z,hint,GQ);
   if(GQ.dist<HALF_W+0.5)return Math.max(h,roadY(GQ));return h;
@@ -405,7 +405,11 @@ const CAR={mass:1250,I:new THREE.Vector3(2170,2390,620),k:32000,cb:2600,cr:3500,
   // pushed back upright (tip); tyre forces act tyreH above the contact patch; steering lock falls with speed as
   // 1/(1+v/stV); on touch screens the automatic throttle also slows for the corner ahead, aiming for assist times the
   // corner's speed (0 turns that off)
-  air:{k:8,d:3},tip:{k:6,start:0.35},tyreH:0.28,stV:16,assist:1.05};
+  air:{k:8,d:3},tip:{k:6,start:0.35},tyreH:0.28,stV:16,assist:1.05,
+  // on the grass the tyres drag (grassDrag, per wheel per m/s), and the car is gently turned to run the way the road
+  // does (grassYaw: yaw stiffness, 1/s², and damping, 1/s) and eased back towards it (grassPull, m/s²), so that a trip
+  // off the road can be driven back from rather than ending in a spin
+  grassDrag:55,grassYaw:{k:2.2,d:1.2},grassPull:1.3};
 const HZ=120,GRAV=9.81;
 const _v1=new THREE.Vector3(),_v2=new THREE.Vector3(),_v3=new THREE.Vector3(),_v4=new THREE.Vector3(),_v5=new THREE.Vector3(),_n=new THREE.Vector3(),
   _m3=new THREE.Matrix3(),_m4=new THREE.Matrix4(),_q=new THREE.Quaternion(),_up=new THREE.Vector3(),_fw=new THREE.Vector3(),_rt=new THREE.Vector3(),
@@ -494,7 +498,7 @@ function stepCar(c,inp,h){
     let Fx=driveTotal*(wh.front?0.2:0.3);
     const bShare=wh.front?0.32:0.18;
     if(brakeIn>0){const fb=brakeIn*CAR.brake*bShare;Fx-=Math.sign(vl)*Math.min(fb,Math.abs(vl)*m*0.25/h*0.25)}
-    Fx-=clamp(vl*40,-90,90)+(grass?vl*30:0);
+    Fx-=clamp(vl*40,-90,90)+(grass?vl*CAR.grassDrag:0);
     const lim=mu*Fz,mag=Math.hypot(Fx,Fy);if(mag>lim){Fx*=lim/mag;Fy*=lim/mag}
     const slide=Math.abs(vs)>2.5?Math.abs(vs):0;c.skid[k]=slide+(mag>lim*0.98&&Math.abs(vl)>8&&Math.abs(Fx)>Math.abs(Fy)?6:0);slipMax=Math.max(slipMax,c.skid[k]);
     // suspension along the strut, tyre forces applied a little above the contact patch to tame roll
@@ -515,6 +519,13 @@ function stepCar(c,inp,h){
       const fn=Math.max(0,180000*pen-14000*vn);_v3.copy(_n).multiplyScalar(fn);
       _v2.copy(_vc).addScaledVector(_n,-vn);const vt=_v2.length();if(vt>0.01)_v3.addScaledVector(_v2,-Math.min(0.6*fn,vt*m*2)/vt);
       _F.add(_v3);_Tq.add(_v4.crossVectors(_v1,_v3))}}
+  if(c.grass&&!c.done&&speed>2){trackQuery(c.p.x,c.p.z,c.hint,RQ);
+    // the road's direction nearest the car's heading, so a car on the grass the wrong way round isn't spun about
+    const dir=_fw.x*RQ.tx+_fw.z*RQ.tz<0?-1:1;
+    const diff=Math.atan2(Math.sin(Math.atan2(RQ.tx*dir,RQ.tz*dir)-Math.atan2(_fw.x,_fw.z)),Math.cos(Math.atan2(RQ.tx*dir,RQ.tz*dir)-Math.atan2(_fw.x,_fw.z)));
+    _Tq.y+=CAR.I.y*(CAR.grassYaw.k*clamp(diff,-0.8,0.8)-CAR.grassYaw.d*c.w.y);
+    const lx=T.X[RQ.i]-c.p.x,lz=T.Z[RQ.i]-c.p.z,al=lx*RQ.tx+lz*RQ.tz,px=lx-al*RQ.tx,pz=lz-al*RQ.tz,pl=Math.hypot(px,pz);
+    if(pl>1e-3){_F.x+=m*CAR.grassPull*px/pl;_F.z+=m*CAR.grassPull*pz/pl}}
   // integrate
   c.v.addScaledVector(_F,h/m);
   // handling aids: level the car in the air to the ground below, and push a tipped car back upright
