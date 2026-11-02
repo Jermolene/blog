@@ -16,6 +16,7 @@ Each toy's notes are in its `CLAUDE.md` or `HANDOVER.md`. Read them before makin
 | `animal-island`, `trundle-world` | Edited in place | Notes and checks |
 | `fractaliser`, `lala-yala`, `rug-addict` | Edited in place | Handover notes |
 | `radialator` | Edited in place | Notes, the reference image it reproduces and its render checks (`tools/`, Python and Playwright) |
+| `canon-eos-r10-field-guide` | Edited in place | Handover notes and `tools/screenshot.sh`, a headless render check |
 | `vectorious` | Edited in place | Handover notes, test images and the Python tracing experiments behind it |
 
 A built toy starts with a comment naming the script that builds it. Don't edit it directly: change the source here, rebuild, and commit both.

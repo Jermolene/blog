@@ -195,6 +195,7 @@ const closeups = {
 	"toys/engravery": {clip: {x: 170, y: 160, width: 580, height: 580}},
 	"toys/flowing-field": {clip: {x: 300, y: 150, width: 500, height: 500}},
 	"toys/fractaliser": {clip: {x: 330, y: 110, width: 500, height: 500}},
+	"tools/canon-eos-r10-field-guide": {clip: {x: 125, y: 190, width: 480, height: 480}},
 	"tools/jpegulator": {clip: {x: 330, y: 230, width: 560, height: 560}},
 	"games/jumbleword": {clip: {x: 40, y: 228, width: 480, height: 480}},
 	"toys/knottery": {clip: {x: 300, y: 120, width: 600, height: 600}},

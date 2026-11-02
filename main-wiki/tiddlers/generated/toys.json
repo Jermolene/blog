@@ -84,6 +84,21 @@
 		"screenshot": "/screenshots/toys/engravery.webp"
 	},
 	{
+		"title": "Toys/canon-eos-r10-field-guide",
+		"caption": "EOS R10 Field Guide",
+		"description": "An interactive guide to the Canon EOS R10 with the RF-S18-150mm lens: a 3D body to turn over and click on, every control explained, the full menu tree to step through with the arrow keys, the shooting screen's readouts and the changes in firmware 1.7.0",
+		"route": "tools/canon-eos-r10-field-guide",
+		"section": "tools",
+		"url": "/tools/canon-eos-r10-field-guide/",
+		"tags": "toy",
+		"text": "",
+		"category": "tools",
+		"short-caption": "R10 Guide",
+		"tagline": "A clickable 3D camera body and its full menu tree",
+		"theme-color": "#eceeef",
+		"screenshot": "/screenshots/tools/canon-eos-r10-field-guide.webp"
+	},
+	{
 		"title": "Toys/flowing-field",
 		"caption": "Flowing Field",
 		"description": "An animated ink drawing of thousands of fine pen strokes sweeping into dark creased ridges. Drag to rake the strokes into line, then randomise, explore nearby drawings and cycle psychedelic colours",
