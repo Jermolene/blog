@@ -23,7 +23,7 @@
   color-scheme:dark;
 }
 [hidden]{display:none!important}
-html,body{height:100%;margin:0;overflow:hidden;background:var(--ink);color:var(--snow);font-family:var(--ui)}
+html,body{height:100%;margin:0;overflow:hidden;touch-action:pan-x pan-y;background:var(--ink);color:var(--snow);font-family:var(--ui)}
 body{-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
 #gl{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
 #ui{position:fixed;inset:0;pointer-events:none}
@@ -66,9 +66,12 @@ body{-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:trans
 #tiltL span{left:max(16px,env(safe-area-inset-left,0px))}#tiltR span{right:max(16px,env(safe-area-inset-right,0px));text-align:right}
 .tzone.on{background:radial-gradient(circle at 50% 80%,rgba(246,243,255,.12),transparent 60%)}
 #pad.tilt .tzone{display:block}#pad.tilt #steerZone,#pad.tilt #bBrake,#pad.tilt #bNitro{display:none}
-#hNitro{width:96px;height:6px;border-radius:3px;background:rgba(246,243,255,.2);overflow:hidden;margin-top:4px}
-#hNitro i{display:block;height:100%;width:100%;background:var(--glow);transform-origin:left;box-shadow:0 0 8px var(--glow)}
+#hNitro{display:flex;align-items:center;gap:8px;margin-top:4px}
+#hNitro .lbl{color:var(--glow)}
+#hNitro span{width:clamp(110px,24vw,170px);height:12px;border-radius:6px;background:rgba(246,243,255,.16);box-shadow:inset 0 0 0 1px rgba(246,243,255,.3);overflow:hidden}
+#hNitro i{display:block;height:100%;width:100%;background:var(--glow);transform-origin:left;box-shadow:0 0 10px var(--glow)}
 #hNitro.on i{background:var(--snow)}
+#hNitro.low .lbl{color:var(--rose)}
 #bBrake small{display:block;font-size:10px;letter-spacing:.08em;margin-top:5px;opacity:.75}
 #bReset{left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 12px);padding:8px 12px;background:var(--ink2);color:var(--snow);border:1px solid var(--mist);font-size:11px}
 /* screens */
@@ -150,7 +153,7 @@ body.racing #pills{display:none}
 <div id="ui">
   <div id="hud" hidden>
     <div class="c tl"><div id="hPos" class="big">1<sup>st</sup></div><div class="lbl" id="hOf">of 1</div></div>
-    <div class="c tr"><div id="hTime" class="mid num">0:00.00</div><div class="lbl" id="hLap">Lap 1 / 3</div><div id="hNitro" title="Nitro"><i></i></div></div>
+    <div class="c tr"><div id="hTime" class="mid num">0:00.00</div><div class="lbl" id="hLap">Lap 1 / 3</div><div id="hNitro"><b class="lbl">Nitro</b><span><i></i></span></div></div>
     <div class="c br deskonly"><div id="hSpd">0</div><div class="lbl">km/h</div></div>
     <div id="hWrong" hidden>Wrong way</div>
     <div id="call"></div>
@@ -867,9 +870,14 @@ zone.addEventListener('pointerdown',e=>{if(touch.id!==null)return;touch.id=e.poi
 zone.addEventListener('pointermove',e=>{if(e.pointerId!==touch.id)return;const dx=clamp(e.clientX-touch.x0,-70,70);touch.steer=Math.sign(dx)*Math.pow(Math.abs(dx)/70,1.3);knob.style.transform='translateX('+dx+'px)'});
 const tUp=e=>{if(e.pointerId!==touch.id)return;touch.id=null;touch.steer=0;stick.classList.remove('on')};
 zone.addEventListener('pointerup',tUp);zone.addEventListener('pointercancel',tUp);
-// hold-to-act touch areas: the nitro button, and the two halves of the screen when steering by tilt
-function holdArea(el,on,off){el.addEventListener('pointerdown',e=>{e.preventDefault();on();el.classList.add('on');try{el.setPointerCapture(e.pointerId)}catch(x){}});
-  ['pointerup','pointercancel','lostpointercapture'].forEach(t=>el.addEventListener(t,()=>{off();el.classList.remove('on')}))}
+// hold-to-act touch areas: the nitro button, and the two halves of the screen when steering by tilt.
+// They count fingers, so lifting one of two fingers on the same area doesn't let go of it
+function holdArea(el,on,off){const down=new Set();
+  el.addEventListener('pointerdown',e=>{e.preventDefault();if(!down.size){on();el.classList.add('on')}down.add(e.pointerId);try{el.setPointerCapture(e.pointerId)}catch(x){}});
+  ['pointerup','pointercancel','lostpointercapture'].forEach(t=>el.addEventListener(t,e=>{if(!down.delete(e.pointerId))return;if(!down.size){off();el.classList.remove('on')}}))}
+// iOS Safari zooms on a pinch whatever the viewport says; a zoomed screen leaves the controls out of reach
+['gesturestart','gesturechange'].forEach(t=>document.addEventListener(t,e=>e.preventDefault()));
+document.addEventListener('touchmove',e=>{if(e.touches.length>1)e.preventDefault()},{passive:false});
 holdArea($('#bBrake'),()=>{touch.brake=touch.drift=true},()=>{touch.brake=touch.drift=false});
 holdArea($('#bNitro'),()=>{touch.nitro=true},()=>{touch.nitro=false});
 holdArea($('#tiltL'),()=>{touch.brake=touch.drift=true},()=>{touch.brake=touch.drift=false});
@@ -878,24 +886,24 @@ $('#bReset').onclick=()=>{if(G.me&&G.me.local&&G.phase==='race')resetCar(G.me)};
 addEventListener('blur',()=>{keys.L=keys.R=keys.U=keys.D=keys.N=keys.S=0;touch.steer=0;touch.brake=touch.drift=touch.nitro=false});
 
 /* ----- tilt steering: turn the device like a steering wheel. The angle of gravity in the plane of the screen,
-   measured from where it was when the race started, so it works however the device is held, and iOS and
+   measured from the nearest quarter turn to how it was held when the race started: so level is always straight
+   ahead, even if the device was tipped as the countdown began, whichever way up it's held, and iOS and
    Android reporting gravity with opposite signs makes no difference. iOS asks permission, so askTilt() is
    called from the taps that start or join a race */
 const TILT_ABLE=IS_TOUCH&&'DeviceMotionEvent' in window;
 const tilt={pref:store.get('trackaholic.steer')||(TILT_ABLE?'tilt':'drag'),ok:false,on:false,raw:0,zero:null,steer:0,settle:0,far:0,land:innerWidth>innerHeight};
 function onMotion(e){const g=e.accelerationIncludingGravity;if(!g||g.x==null)return;
   if(Math.hypot(g.x,g.y)>2.5)tilt.raw=Math.atan2(g.x,g.y); // too flat to tell otherwise: keep the last angle
-  if(tilt.zero===null)tilt.zero=tilt.raw;
-  if(!tilt.ok){tilt.ok=true;paintPad()}}
+  if(!tilt.ok){tilt.ok=true;tiltZero();paintPad()}}
 function listenTilt(){if(!tilt.on){tilt.on=true;addEventListener('devicemotion',onMotion)}}
 function askTilt(){
   if(!TILT_ABLE||tilt.pref!=='tilt')return;
   const D=window.DeviceMotionEvent;
   if(D&&typeof D.requestPermission==='function')D.requestPermission().then(r=>{if(r==='granted')listenTilt();else{tilt.pref='drag';paintSteer()}}).catch(()=>{});
   else listenTilt()}
-function tiltZero(){tilt.zero=tilt.raw;tilt.steer=0}
+function tiltZero(){const q=Math.PI/2;tilt.zero=Math.round(tilt.raw/q)*q;tilt.steer=0}
 // turning the device between portrait and landscape is itself a quarter turn in the plane of the screen, so when the
-// screen rotates, centre the steering while it settles and measure from wherever the device is then held
+// screen rotates, centre the steering while it settles and then measure from its new quarter turn
 function tiltRotated(){tilt.settle=now()+600;tiltZero()}
 if(screen.orientation&&screen.orientation.addEventListener)screen.orientation.addEventListener('change',tiltRotated);
 addEventListener('orientationchange',tiltRotated);
@@ -907,7 +915,7 @@ function tiltSteer(dt){
   let d=tilt.raw-tilt.zero;d=Math.atan2(Math.sin(d),Math.cos(d));
   const deg=-d*180/Math.PI,a=Math.abs(deg);
   // held far past any steering angle for most of a second (a turned device whose screen is locked): centre again
-  if(a>65){if(!tilt.far)tilt.far=now();else if(now()-tilt.far>800){tilt.far=0;tiltZero();return 0}}else tilt.far=0;
+  if(a>65){if(!tilt.far)tilt.far=now();else if(now()-tilt.far>800){tilt.far=0;tilt.zero=tilt.raw;tilt.steer=0;return 0}}else tilt.far=0;
   const s=tiltCurve(deg);
   tilt.steer+=(s-tilt.steer)*Math.min(1,dt*18);return tilt.steer}
 const tiltMode=()=>tilt.pref==='tilt'&&tilt.ok;
@@ -1117,7 +1125,7 @@ function updateHud(){
   $('#hLap').textContent=me.done?'Finished':'Lap '+clamp(me.lap,1,G.laps)+' / '+G.laps;
   $('#hSpd').textContent=Math.round(me.v.length()*3.6);
   $('#hWrong').hidden=!(me.wrongT>1.2);
-  const nm=$('#hNitro');nm.hidden=!me.local;nm.firstElementChild.style.transform='scaleX('+(me.nitro||0).toFixed(3)+')';nm.classList.toggle('on',!!me.boost);
+  const nm=$('#hNitro');nm.hidden=!me.local;nm.querySelector('i').style.transform='scaleX('+(me.nitro||0).toFixed(3)+')';nm.classList.toggle('on',!!me.boost);nm.classList.toggle('low',(me.nitro||0)<.12);
 }
 
 /* ================= LAN play: QR codes and WebRTC (toys-src/shared/lan.js) ================= */
