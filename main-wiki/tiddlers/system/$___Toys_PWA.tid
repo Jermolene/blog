@@ -3,8 +3,9 @@ title: $:/_Toys/PWA
 
 <$list filter="[<currentTiddler>match[Toys]] [<currentTiddler>match[Games]] [<currentTiddler>match[Tools]]" variable="ignore">
 <$let section={{{ [<currentTiddler>lowercase[]] }}}>
-<link rel="manifest" href={{{ [<section>addprefix[/]addsuffix[/manifest.webmanifest]] }}}>
+<link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#5c59a7">
+<meta name="toys-section" content=<<section>>>
 <link rel="apple-touch-icon" href={{{ [<section>addprefix[/]addsuffix[/apple-touch-icon.png]] }}}>
 </$let>
 </$list>

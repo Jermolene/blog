@@ -1,15 +1,17 @@
 /*
-Service worker for one section of the site, the toys at /toys/, the games at
-/games/ or the tools at /tools/: its index and every toy beneath it. build-pwa.js
-copies it into each section, and it is registered by pwa.js, which the index
-pages and each toy include. The workers share the origin's caches, so each
-names its caches after its own section and only ever deletes its own.
+Service worker for the toys at /toys/, the games at /games/ and the tools at
+/tools/: their index pages and every toy beneath them. It is served from the
+root of the site, so that its scope covers all three sections and they can be
+installed together as one app, and it is registered by pwa.js, which the
+index pages and each toy include. Its scope also covers the rest of the site,
+whose pages and resources it leaves alone.
 
 build-pwa.js replaces the importScripts() line below with the list of files
 to cache, along with a version derived from their contents. Any change to a
 toy therefore changes the bytes of this worker, so the browser notices the
 change when it checks for updates. The new version is installed into a fresh
-cache, and the old one is discarded on activation.
+cache, and the old one is discarded on activation, along with the caches of
+the earlier workers that each looked after one section.
 
 The toys' own files are fetched from the network first, so that a visit when
 online always shows the latest version, even before an updated worker has
@@ -29,9 +31,20 @@ responses can still be stored.
 
 importScripts("precache.js");
 
-const SECTION = new URL(self.registration.scope).pathname.split("/").filter(Boolean)[0] || "toys",
-	PRECACHE = SECTION + "-precache-" + self.PRECACHE.version,
-	RUNTIME = SECTION + "-runtime";
+const PRECACHE = "apps-precache-" + self.PRECACHE.version,
+	RUNTIME = "apps-runtime",
+	SECTIONS = /^\/(games|toys|tools)(\/|$)/,
+	PRECACHED_PATHS = new Set(self.PRECACHE.urls);
+
+// Whether a cross-origin request was made by one of the toys or their
+// indexes, rather than by a page elsewhere on the site
+async function isFromToy(event,url) {
+	if(self.PRECACHE.external.includes(url.href)) {
+		return true;
+	}
+	const client = event.clientId && await self.clients.get(event.clientId);
+	return !!client && SECTIONS.test(new URL(client.url).pathname);
+}
 
 self.addEventListener("install",event => {
 	event.waitUntil((async () => {
@@ -56,7 +69,7 @@ self.addEventListener("activate",event => {
 	event.waitUntil((async () => {
 		const keys = await caches.keys();
 		await Promise.all(keys
-			.filter(key => key.startsWith(SECTION + "-") && key !== PRECACHE && key !== RUNTIME)
+			.filter(key => /^(apps|games|toys|tools)-/.test(key) && key !== PRECACHE && key !== RUNTIME)
 			.map(key => caches.delete(key)));
 		await self.clients.claim();
 	})());
@@ -100,7 +113,16 @@ self.addEventListener("fetch",event => {
 		return;
 	}
 	const url = new URL(request.url);
+	// The rest of the site is left to the browser. Third party resources
+	// can only be told apart once the page that asked for them has been
+	// looked up, and those of other pages are then fetched as normal
+	if(url.origin === self.location.origin && !SECTIONS.test(url.pathname) && !PRECACHED_PATHS.has(url.pathname)) {
+		return;
+	}
 	event.respondWith((async () => {
+		if(url.origin !== self.location.origin && !await isFromToy(event,url)) {
+			return fetch(request);
+		}
 		const precache = await caches.open(PRECACHE),
 			runtime = await caches.open(RUNTIME),
 			matchOptions = {ignoreSearch: true, ignoreVary: true};
