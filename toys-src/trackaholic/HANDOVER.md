@@ -134,3 +134,9 @@ Other changes made when the toy joined the site:
 
 - Real iPad and iPhones: frame rate with 8 cars, Safari ICE, camera reading reply QRs.
 - As an installed web app: `pwa.js` adds a small “back to the toys” button in the bottom-left corner when the toy is opened from the installed toys app, which may sit under the steering thumb on a phone.
+
+## Landscapes (2026-11-02)
+
+- Five landscapes, which only look different: the track, the terrain's shape and the driving are the same in each. `LANDS` (just after the sky) holds each one's sky colours (linear, as the shader adds them) and extras (`stars`, `aurora`, `rays` for light from the surface, `planet` for the Earth), sun direction, fog, lights, exposure, the six terrain colours, water (or `null`), road tint and glow, skirt and arch colours. `applyLand()` sets them and remakes the environment map (`buildEnv`).
+- `buildWorld()` builds the terrain, water, road and arches for whichever landscape `T.land` is, then the scenery: dusk keeps its trees, mushrooms, crystals, boulders, floating islands and motes; the desert has saguaros, scrub and banded mesas; under the sea has swaying kelp (`sway()` bends it in the vertex shader), branching, brain and tube coral, jellyfish that bob like the islands, and rising bubbles (`motes(..., rise)`); the moon has craters shaded into the terrain with rims, and a base of domes and masts; the city has tower blocks with lit windows in three heights and street lamps along the road. Everything is seeded from the track, so every device builds the same world.
+- `G.land` is stored as `trackaholic.land`; the picker (`paintLands`, a row of painted thumbnails from `landThumb`) is on the title screen and in the host's lobby. The race spec and the lobby message carry `land`; `courseIs(seed, land)` decides when to rebuild. Best times are still per track and laps, not per landscape.
