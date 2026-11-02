@@ -24,6 +24,7 @@ The order inside the single IIFE `<script>`:
    - `reg(mesh,id)` clones the material and registers the mesh for picking and highlighting under a control `id`. Meshes registered as `"body"` block picks without highlighting.
    - Vari-angle screen: `hinge` group (left edge, rotates y) contains `flip` group (rotates x). `setScreen(swingDeg, flipDeg)`.
    - Lens group: RF-S18-150 proportions (≈69mm Ø × 84.5mm, scaled to the model). Zoom ring (`zoom`), front focus/control ring (`ring`), name and focal-length decals.
+   - `focus(id)` swings the camera round to a control when its legend button is pressed: the face's preset turned towards the control's bounding-box centre, or three-quarters on from the left for controls on the view axis (the lens rings). Clicking the model itself doesn't move the camera.
    - `tint()` lerps the emissive or colour toward red for selected/hovered ids. Rendering is **on demand** (the `need` flag); the loop idles when `view !== "controls"`.
    - `RoomEnvironment` + PMREM give the environment reflections.
    - `indexedDB.deleteDatabase("r10-field-guide")` cleans up a scan cache left by an earlier, withdrawn version. It can be removed after a while.
