@@ -141,8 +141,8 @@ tr.me td{color:var(--gold)}
 #toasts div{background:var(--ink2);padding:8px 12px;border-radius:8px;animation:tin 4s ease both;align-self:flex-start}
 @keyframes tin{0%{opacity:0;transform:translateX(-20px)}8%{opacity:1;transform:none}85%{opacity:1}100%{opacity:0}}
 #tvBar{position:absolute;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(env(safe-area-inset-bottom,0px) + 16px);display:flex;gap:10px}
-body.hostdrive #tvBar{top:calc(env(safe-area-inset-top,0px) + 92px);bottom:auto;right:auto;left:max(16px,env(safe-area-inset-left,0px));flex-direction:column;align-items:flex-start;gap:8px}
-body.hostdrive #tvBar .btn{white-space:nowrap}
+body.drivebar #tvBar{top:calc(env(safe-area-inset-top,0px) + 92px);bottom:auto;right:auto;left:max(16px,env(safe-area-inset-left,0px));flex-direction:column;align-items:flex-start;gap:8px}
+body.drivebar #tvBar .btn{white-space:nowrap}
 #tvJoinCard{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(70vw,60vh)}
 #netNote{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 16px);transform:translateX(-50%);background:var(--rose);color:var(--ink);font:700 15px/1.3 var(--ui);padding:10px 14px;border-radius:8px;max-width:calc(100% - 32px);z-index:9}
 #pills{position:absolute;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);left:50%;transform:translateX(-50%);display:flex;gap:8px}
@@ -620,18 +620,25 @@ const hemi=new THREE.HemisphereLight(0xb7a6ff,0x2f5f5a,0.75);scene.add(hemi);
 const sun=new THREE.DirectionalLight(0xffc9a0,2.7);sun.castShadow=true;
 const SH=IS_TOUCH?1024:2048;sun.shadow.mapSize.set(SH,SH);Object.assign(sun.shadow.camera,{left:-38,right:38,top:38,bottom:-38,near:1,far:300});
 sun.shadow.bias=-0.0003;sun.shadow.normalBias=0.04;scene.add(sun,sun.target);
-// sky: a gradient, sun, and, as the landscape has them, stars, an aurora, shafts of light from the surface, a planet
+// sky: a gradient, sun, and, as the landscape has them, stars, shooting stars, an aurora, shafts of light from the surface, a planet
 const v3=a=>new THREE.Vector3(...a);
 const skyU={time:{value:0},sunDir:{value:SUNDIR},zen:{value:v3([0,0,0])},mid:{value:v3([0,0,0])},hor:{value:v3([0,0,0])},low:{value:v3([0,0,0])},sunCol:{value:v3([1,1,1])},
-  stars:{value:1},aurora:{value:1},rays:{value:0},planet:{value:0},planetDir:{value:v3([0.42,0.3,-0.86]).normalize()}};
+  stars:{value:1},meteors:{value:0},aurora:{value:1},rays:{value:0},planet:{value:0},planetDir:{value:v3([0.42,0.3,-0.86]).normalize()}};
 const skyMat=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,uniforms:skyU,
   vertexShader:'varying vec3 vD;void main(){vD=normalize(position);vec4 p=projectionMatrix*modelViewMatrix*vec4(position,1.);gl_Position=p.xyww;}',
-  fragmentShader:`uniform float time,stars,aurora,rays,planet;uniform vec3 sunDir,zen,mid,hor,low,sunCol,planetDir;varying vec3 vD;
+  fragmentShader:`uniform float time,stars,meteors,aurora,rays,planet;uniform vec3 sunDir,zen,mid,hor,low,sunCol,planetDir;varying vec3 vD;
   float h1(vec3 p){return fract(sin(dot(p,vec3(12.9898,78.233,37.719)))*43758.5453);}
   void main(){vec3 d=normalize(vD);float y=d.y;
     vec3 c=mix(hor,mid,smoothstep(0.,.22,y));c=mix(c,zen,smoothstep(.18,.75,y));c=mix(c,low,smoothstep(0.,-.25,y));
     float s=max(dot(d,sunDir),0.);c+=sunCol*(pow(s,900.)*6.+pow(s,60.)*.25+pow(s,6.)*.08);
     if(stars>0.){vec3 g=floor(d*420.);float st=step(.9965,h1(g));c+=stars*st*vec3(.9,.9,1.)*smoothstep(.12,.5,y)*(.6+.4*sin(time*2.+h1(g+1.)*30.));}
+    if(meteors>0.){for(int i=0;i<3;i++){float fi=float(i),per=7.+fi*3.7,tt=time/per+fi*.37,f=fract(tt)*per,life=.8+.3*fi;
+      if(f<life){vec3 sd=vec3(floor(tt),fi,7.);float az=h1(sd)*6.2832,el=.42+h1(sd+1.)*.5,an=-1.5708+(h1(sd+2.)-.5)*2.4,pr=f/life;
+        vec3 m=vec3(cos(el)*sin(az),sin(el),cos(el)*cos(az));
+        if(dot(d,m)>.9){vec3 rt=normalize(cross(m,vec3(0.,1.,0.))),up=cross(rt,m);vec2 q=vec2(dot(d,rt),dot(d,up)),dir=vec2(cos(an),sin(an)),r=q-dir*(pr-.5)*.5;
+          float al=dot(r,-dir),ac=dot(r,vec2(-dir.y,dir.x)),tl=.07+.11*pr;
+          float k=exp(-ac*ac/3.5e-6)*(al<0.?exp(al*al/-1.5e-6):1.-smoothstep(0.,tl,al));
+          c+=meteors*k*sin(pr*3.1416)*smoothstep(.08,.25,y)*vec3(1.,.95,.85)*2.2;}}}}
     if(aurora>0.){vec2 p=d.xz/(y+.25);
       for(int i=0;i<3;i++){float fi=float(i);float b=p.y*1.3+.5*sin(p.x*.9+time*.07*(fi+1.)+fi*2.1)+.25*sin(p.x*2.3-time*.11)-.2-fi*.45;
         float a=exp(-b*b*14.)*smoothstep(.12,.45,y)*(.55+.45*sin(p.x*6.+time*.3+fi));
@@ -654,14 +661,14 @@ const sky=new THREE.Mesh(new THREE.SphereGeometry(1500,48,24),skyMat);sky.frustu
 function buildEnv(){const es=new THREE.Scene();es.add(new THREE.Mesh(new THREE.SphereGeometry(100,48,24),skyMat.clone()));
   const card=(c,i,x,y,z,w,hh)=>{const m=new THREE.Mesh(new THREE.PlaneGeometry(w,hh),new THREE.MeshBasicMaterial({color:new THREE.Color(c).multiplyScalar(i),side:THREE.DoubleSide}));m.position.set(x,y,z);m.lookAt(0,0,0);es.add(m)};
   card(0xffd6b0,3,-60,30,-70,60,14);card(0xb8c8ff,1.4,70,60,20,40,40);card(0xffffff,1.2,0,90,0,80,80);card(0x7cf3ff,1.2,40,8,80,60,6);
-  es.children[0].material.uniforms.sunDir.value=SUNDIR;
+  es.children[0].material.uniforms.sunDir.value=SUNDIR;es.children[0].material.uniforms.meteors.value=0;
   const pm=new THREE.PMREMGenerator(renderer);if(scene.environment)scene.environment.dispose();scene.environment=pm.fromScene(es,0.02,0.1,500).texture;pm.dispose();
   es.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material)o.material.dispose()})}
 /* ----- landscapes. Each one only looks different: the track, the terrain's shape and the driving are the same.
    Sky colours are linear, as the shader adds them; ground colours are the terrain's: two base tones, patches,
    shore, steep slopes and the verge beside the road. */
 const LANDS={
-  dusk:{name:'Dusk valley',sky:{zen:[.035,.03,.12],mid:[.25,.14,.42],hor:[1,.55,.5],low:[.25,.16,.32],sunCol:[1,.7,.45],stars:1,aurora:1},sunDir:[-0.62,0.24,-0.75],
+  dusk:{name:'Dusk valley',sky:{zen:[.035,.03,.12],mid:[.25,.14,.42],hor:[1,.55,.5],low:[.25,.16,.32],sunCol:[1,.7,.45],stars:1,meteors:1,aurora:1},sunDir:[-0.62,0.24,-0.75],
     fog:[0x8a6aa8,0.0021],hemi:[0xb7a6ff,0x2f5f5a,0.75],sun:[0xffc9a0,2.7],exposure:0.72,
     ground:[0x2c8c86,0x5d74c9,0xd77fbd,0xe9d4b2,0x77709c,0x4e4a6e],water:{color:0x2a2060,roughness:0.06,metalness:0.85,opacity:0.92},
     skirt:0x3b3550,arches:[0x5ff3ff,0xff7ac8,0xffd27a,0x9dff8a]},
@@ -673,11 +680,11 @@ const LANDS={
     fog:[0x0b5068,0.0065],hemi:[0x8ff0ff,0x1a4a50,0.95],sun:[0xb8f4ff,2.1],exposure:0.78,
     ground:[0xcbbf96,0x8fae96,0x4f9a86,0xe6dcb6,0x5e7088,0x6a7a80],water:null,
     skirt:0x4a6a70,road:0xb8c8d0,arches:[0x5ff3ff,0xff8ad0,0xfff07a,0x9dff8a],motes:{pal:[0xd8fbff,0xb0f0ff,0xffffff],size:0.35,rise:1.6}},
-  moon:{name:'On the moon',sky:{zen:[0,0,.004],mid:[.003,.003,.01],hor:[.012,.012,.022],low:[.01,.01,.012],sunCol:[1,1,.95],stars:1.4,planet:1},sunDir:[-0.7,0.3,-0.6],
+  moon:{name:'On the moon',sky:{zen:[0,0,.004],mid:[.003,.003,.01],hor:[.012,.012,.022],low:[.01,.01,.012],sunCol:[1,1,.95],stars:1.4,meteors:1.2,planet:1},sunDir:[-0.7,0.3,-0.6],
     fog:[0x050508,0.0008],hemi:[0x9aa0b0,0x202024,0.22],sun:[0xffffff,2.5],exposure:0.7,
     ground:[0x6a6a6e,0x5a5a60,0x8a8a8e,0x404046,0x4c4c52,0x55555a],water:null,
     skirt:0x55555a,road:0xc8c8d0,roadGlow:0.6,arches:[0x5ff3ff,0xffffff,0xffd27a,0x9db8ff]},
-  city:{name:'City at night',sky:{zen:[.006,.008,.03],mid:[.05,.05,.14],hor:[.55,.3,.2],low:[.06,.04,.08],sunCol:[.55,.6,.8],stars:.35},sunDir:[0.5,0.38,-0.7],
+  city:{name:'City at night',sky:{zen:[.006,.008,.03],mid:[.05,.05,.14],hor:[.55,.3,.2],low:[.06,.04,.08],sunCol:[.55,.6,.8],stars:.35,meteors:.8},sunDir:[0.5,0.38,-0.7],
     fog:[0x2a2440,0.0024],hemi:[0x8a90c8,0x2a2030,0.55],sun:[0xb8c8ff,1.3],exposure:0.8,
     ground:[0x2f5a40,0x3d5a4a,0x4f6a3a,0x8a8070,0x55555e,0x3a3a44],water:{color:0x0c1428,roughness:0.04,metalness:0.9,opacity:0.95},
     skirt:0x3a3a44,road:0xb4b4c0,arches:[0xff5fc8,0x5ff3ff,0xffd27a,0xff8a3c]}};
@@ -685,7 +692,7 @@ const LAND_IDS=Object.keys(LANDS);
 let landShown=null;
 function applyLand(id){const L=LANDS[id];if(landShown===id)return;landShown=id;
   const k=L.sky;for(const n of['zen','mid','hor','low','sunCol'])skyU[n].value.fromArray(k[n]);
-  for(const n of['stars','aurora','rays','planet'])skyU[n].value=k[n]||0;
+  for(const n of['stars','meteors','aurora','rays','planet'])skyU[n].value=k[n]||0;
   SUNDIR.fromArray(L.sunDir).normalize();scene.fog.color.set(L.fog[0]);scene.fog.density=L.fog[1];
   hemi.color.set(L.hemi[0]);hemi.groundColor.set(L.hemi[1]);hemi.intensity=L.hemi[2];sun.color.set(L.sun[0]);sun.intensity=L.sun[1];
   renderer.toneMappingExposure=L.exposure;buildEnv()}
@@ -1183,7 +1190,7 @@ function paintLands(){for(const el of document.querySelectorAll('.lands')){
   for(const b of el.children)b.setAttribute('aria-pressed',b.dataset.land===G.land)}}
 function pickLand(id){if(G.land===id)return;G.land=id;store.set('trackaholic.land',id);rebuildCourse(G.seed);paintLands();if(G.mode==='host'&&G.phase==='lobby')HOST.lobbyUpdate()}
 function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.hidden=s.id!==id)}
-function showHUD(on){const host=G.mode==='host',watching=host&&!G.me;document.body.classList.toggle('racing',!!on);document.body.classList.toggle('hostdrive',!!on&&host&&!!G.me);$('#hud').hidden=!on||!G.me;$('#pad').hidden=!on||!IS_TOUCH||!G.me;$('#tv').hidden=!(on&&watching);$('#tvBar').hidden=!(on&&host);$('#mini').hidden=!on;paintPad()}
+function showHUD(on){const host=G.mode==='host',watching=host&&!G.me;document.body.classList.toggle('racing',!!on);document.body.classList.toggle('drivebar',!!on&&!!G.me);$('#hud').hidden=!on||!G.me;$('#pad').hidden=!on||!IS_TOUCH||!G.me;$('#tv').hidden=!(on&&watching);$('#tvBar').hidden=!(on&&(host||G.mode==='solo'));$('#tvJoin').hidden=!host;$('#mini').hidden=!on;paintPad()}
 let soloBots=+(store.get('trackaholic.bots')||5);
 function newSeed(){G.seed=1000+Math.floor(Math.random()*9000)}
 function showTitle(){G.mode='solo';G.phase='title';showHUD(false);showScreen('sTitle');$('#soloBots').textContent=soloBots;$('#soloLaps').textContent=G.laps;
@@ -1204,6 +1211,8 @@ $('#bJoinScan').onclick=()=>TA_LAN.scan('O',{buttonClass:'btn'}).then(t=>{locati
 $('#bJoinPaste').onclick=()=>{const t=prompt('Paste the code from the host’s screen');if(!t)return;try{TA_LAN.check(t,'O');location.hash=LAN.codeOf(t)}catch(e){alertNote(e.message)}};
 function alertNote(t){netNote(t);setTimeout(()=>netNote(''),5000)}
 function netNote(t){const el=$('#netNote');el.textContent=t||'';el.hidden=!t}
+// a solo race can end early from the button too: an installed app has no other way out on a phone
+$('#tvEnd').onclick=()=>{const rows=resultRows();if(G.mode==='host')HOST.results(rows);else showResults(rows)};
 addEventListener('keydown',e=>{if(e.code==='Escape'&&G.mode==='solo'&&G.phase!=='title')showTitle()});
 
 /* ================= minimap ================= */
@@ -1326,7 +1335,6 @@ const HOST={lan:null,players:[],bots:+(store.get('trackaholic.hostbots')||2),pha
     $('#hostDrive').onclick=()=>{this.drive=!this.drive;store.set('trackaholic.hostdrive',this.drive?'1':'0');this.lobbyUpdate()};
     $('#hostName').value=store.get('trackaholic.name')||'';$('#hostName').oninput=()=>{store.set('trackaholic.name',$('#hostName').value.trim());this.lobbyUpdate()};
     $('#bStart').onclick=()=>{askTilt();this.start()};
-    $('#tvEnd').onclick=()=>this.results(resultRows());
     $('#tvJoin').onclick=()=>{const c=$('#tvJoinCard');c.hidden=!c.hidden};
     this.lobbyUpdate();
     if(!TA_LAN.ok){setStatus('#hostStatus','This browser can’t host. Try Safari or Chrome.',true);return}
@@ -1434,7 +1442,7 @@ const GU={lan:null,id:null,lobby:null,
 function setStatus(sel,t,err){const e=$(sel);e.textContent=t;e.classList.toggle('err',!!err)}
 
 /* ================= boot ================= */
-window.GW={G,HOST,GU,get T(){return T},rebuildCourse,resetCar,tiltCurve,autoGas,HALF_W,HZ,stepCar,botInput,groundH,terrainH,trackQuery,startSolo,setupRace,newCar,placeCar,CAR,accept:c=>HOST.lan.accept(c)};
+window.GW={G,HOST,GU,skyU,get T(){return T},rebuildCourse,resetCar,tiltCurve,autoGas,HALF_W,HZ,stepCar,botInput,groundH,terrainH,trackQuery,startSolo,setupRace,newCar,placeCar,CAR,accept:c=>HOST.lan.accept(c)};
 window.FL=window.GW;
 resize();
 const hj=LAN.takeHash(); // opened from the host's QR code: taken out of the address, so a reload doesn't reuse it
