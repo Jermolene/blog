@@ -201,3 +201,7 @@ The alley bear walks and sits on the divider between the lane and its neighbour:
 
 - Round the table, `react()` no longer waits for the dance: play carries on and `stopDancing()` cuts it short when the next ball is launched or the lane swings to another seat. At the end of the game the results appear 1.5 s into the dance. The alley already worked this way (`nb.cancel()` on the next ball).
 - The bear is bigger: 1.45 m nose to tail round the table (was 0.95), its home 1.45 lane units off the centre line (was 1.25) to keep it off the lane, and 1.6 m in the alley (was 1.0).
+
+## Poking the bear (2026-11-05)
+
+A tap that touches either bear (alley or table) pokes it: `pokeBear()` casts the tap's ray and `bear.poke(ray)` makes the bear lean away along the ray, spin according to the side touched, squash and bob, with `sfx.boop`. The tap still does whatever else it would, so a swipe that starts on the bear still bowls. The motion is `makePokes()`, a closed-form damped spring (after mrdoob's Codevember 2026/05) evaluated against the bear's own clock `bear.t`, so a paused table holds it: each poke peaks 0.25 s later, recoils by a fifth and is gone by 2.4 s; pokes add up and `tanh` keeps each component under its limit. It is applied in `bear.update` after the pose, as a tilt about the feet, extra yaw, a squash and a lift on `bear.root`. `window.__n.nb` is the alley bear.

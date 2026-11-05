@@ -930,6 +930,20 @@ const BearDance=(()=>{
 // ================= The bear =================
 // "Realistic Animated Bear 3D Model" by WildMesh 3D (CC BY 4.0), slimmed to 12 clips, from bear-model.js.
 // makeBear() parses a fresh copy, scales it to `length` metres nose to tail and returns a steerable mascot
+// Pokes: a damped spring after a short fading push, evaluated against the bear's own clock so pausing holds it
+// (after mrdoob's Codevember 2026/05). Each poke starts at rest, peaks 0.25 s later, recoils by a fifth and is
+// gone by `dur`. Pokes add up, and tanh keeps each component under its limit however fast the taps come.
+function makePokes(limits,{decay=2.9,freq=5.5,push=25,dur=2.4}={}){
+  const r=freq/(push-decay),raw=t=>Math.exp(-decay*t)*(Math.sin(freq*t)-r*Math.cos(freq*t))+r*Math.exp(-push*t);
+  let peak=0;for(let t=0;t<dur;t+=0.002)peak=Math.max(peak,raw(t));
+  const tail=t=>{const k=Math.min(1,Math.max(0,t-dur+0.6)/0.6);return 1-k*k*k*(k*(k*6-15)+10);};
+  const n=limits.length,list=[],out=new Float32Array(n);
+  return{out,get busy(){return list.length>0;},
+    kick(t,v){list.push({t,v:v.slice()});},
+    at(t){out.fill(0);
+      for(let i=list.length-1;i>=0;i--){const a=t-list[i].t;if(a>=dur||a<0){list.splice(i,1);continue;}const w=raw(a)/peak*tail(a);for(let k=0;k<n;k++)out[k]+=list[i].v[k]*w;}
+      for(let k=0;k<n;k++)out[k]=limits[k]*Math.tanh(out[k]/limits[k]);return out;}};
+}
 const turnTo=(a,b,k)=>{const d=((b-a+Math.PI)%(2*Math.PI)+2*Math.PI)%(2*Math.PI)-Math.PI;return a+d*Math.min(1,k);};
 const BEAR_GAITS=['Walk','Trot','Run','Sprint'];
 async function makeBear(length,groundY){
@@ -1024,8 +1038,35 @@ async function makeBear(length,groundY){
     if(bear.hop){bear.hop.t+=dt;const k=bear.hop.t/bear.hop.dur;if(k>=1)bear.hop=null;else y+=Math.sin(Math.PI*k)*bear.hop.h;}
     BearDance.restore(rig);bear.mixer.update(dt);BearDance.capture(rig);BearDance.ease(rig,pose,dt);
     const S=rig.S,side=S[22]*BearDance.K_HIPS[0]*hipK*rig.w,up=Math.max(-0.03,S[23]*BearDance.K_HIPS[1])*hipK*rig.w;
-    bear.root.position.set(bear.pos.x-Math.cos(bear.heading)*side,y+up,bear.pos.z+Math.sin(bear.heading)*side);bear.root.rotation.y=bear.heading;
+    bear.root.position.set(bear.pos.x-Math.cos(bear.heading)*side,y+up,bear.pos.z+Math.sin(bear.heading)*side);bear.root.rotation.set(0,bear.heading,0);
+    bear.t+=dt;
+    if(bear.pokes.busy){
+      // lean (tipping about the feet), spin, squash and a little lift
+      const P=bear.pokes.at(bear.t);bear.root.rotation.y+=P[2];
+      const a=Math.hypot(P[0],P[1]);if(a>1e-5)bear.root.quaternion.premultiply(pq.setFromAxisAngle(pa.set(P[0]/a,0,P[1]/a),a));
+      bear.root.position.y+=P[4];bear.root.scale.set(1+P[3]*0.5,1-P[3],1+P[3]*0.5);
+    }else bear.root.scale.setScalar(1);
     bear.root.updateMatrixWorld(true);BearDance.apply(rig,bear.heading);
+  };
+  // poke(ray): a world-space ray (from a tap) that passes through the bear makes it lean away along the ray,
+  // spin according to which side was touched, squash and bob. Returns whether it touched the bear.
+  const pq=new THREE.Quaternion(),pa=new THREE.Vector3(),pc=new THREE.Vector3(),pp=new THREE.Vector3(),pd=new THREE.Vector3();
+  bear.t=0;bear.lastPoke=-1;bear.pokes=makePokes([0.45,0.45,1.0,0.2,0.1]);
+  bear.poke=ray=>{
+    bear.root.getWorldPosition(pc);pc.y+=length*0.22;
+    ray.closestPointToPoint(pc,pp);if(pp.distanceTo(pc)>length*0.42)return false;
+    if(bear.t-bear.lastPoke<0.12)return true;bear.lastPoke=bear.t;
+    const lever=pp.sub(pc);lever.y=0;
+    pd.set(ray.direction.x,0,ray.direction.z);
+    if(pd.lengthSq()<0.04)pd.copy(lever).negate(); // looking straight down: lean away from the finger
+    if(pd.lengthSq()<1e-6)pd.set(-Math.sin(bear.heading),0,-Math.cos(bear.heading));
+    pd.normalize();
+    // the side touched sets the spin: across the push, or across the bear when the push is straight down
+    let yaw=lever.z*pd.x-lever.x*pd.z;
+    if(Math.abs(yaw)<0.04*length)yaw=Math.cos(bear.heading)*lever.x-Math.sin(bear.heading)*lever.z;
+    pa.set(0,1,0).cross(pd); // tips the top towards pd
+    bear.pokes.kick(bear.t,[pa.x*0.3,pa.z*0.3,Math.sign(yaw||1)*0.6,0.12,0.06]);
+    return true;
   };
   bear.play('Sitting_Idle_02');
   return bear;
@@ -1089,10 +1130,19 @@ function resize(){
 }
 addEventListener('resize',resize);resize();
 
+// ================= Poking the bear =================
+// A tap that touches a bear pokes it, in either game, and anything else the tap does still happens
+const pokeRay=new THREE.Raycaster(),pokeNdc=new THREE.Vector2();
+function pokeBear(b,cam,cx,cy,W,H){
+  if(!b)return false;pokeNdc.set(cx/W*2-1,-(cy/H)*2+1);pokeRay.setFromCamera(pokeNdc,cam);
+  if(!b.poke(pokeRay.ray))return false;sfx.boop();return true;
+}
+
 // ================= Swipe to bowl =================
 const trail=$('#trail'),tg=trail.getContext('2d');let drag=null,trailFade=0;
 const mapX=px=>Math.max(-0.42,Math.min(0.42,(px/innerWidth-0.5)*1.1));
 $('#gl').addEventListener('pointerdown',e=>{
+  if(!inTable)pokeBear(nb,camera,e.clientX,e.clientY,innerWidth,innerHeight);
   if(inTable||!canThrow())return;
   drag={pts:[{x:e.clientX,y:e.clientY,t:performance.now()}]};aimX=mapX(e.clientX);rackCache.b[0]=aimX;
   try{$('#gl').setPointerCapture(e.pointerId);}catch(err){}
@@ -1180,6 +1230,7 @@ const sfx = (() => {
     },
     cheer() { if (!ctx) return; const t = ctx.currentTime; for (let i = 0; i < 4; i++) tone(t + i*0.09, 520 * Math.pow(1.26, i), 560 * Math.pow(1.26, i), 0.22, 0.18, 'square'); },
     womp() { if (!ctx) return; const t = ctx.currentTime; tone(t, 330, 160, 0.35, 0.25, 'triangle'); tone(t + 0.32, 250, 110, 0.6, 0.25, 'triangle'); },
+    boop() { if (!ctx) return; const t = ctx.currentTime; tone(t, 380, 620, 0.12, 0.22); tone(t + 0.1, 620, 300, 0.22, 0.16, 'triangle'); },
     tick() { if (!ctx) return; tone(ctx.currentTime, 900, 900, 0.05, 0.12, 'square'); },
     groove(beats, bpm) { // kick, off-beat hat and a walking bass under the bear's dancing
       if (!ctx) return; const t = ctx.currentTime + 0.03, b = 60 / bpm, bass = [110, 110, 131, 147, 165, 147, 131, 98];
@@ -1934,6 +1985,7 @@ async function initTable(renderer, onLeave) {
   canvas.addEventListener('pointerdown', e => {
     if (!active) return;
     sfx.init();
+    if (!paused) pokeBear(bear, camera, e.clientX, e.clientY, L.W, L.H);
     if (!aim || drag || paused) return;
     const p = screenToLane(e.clientX, e.clientY); if (!p) return;
     if (Math.abs(p.x) > EDGE + 0.6 || p.z < HEAD_Z / 2 || p.z > APPROACH_Z + 1.2) return;
@@ -2301,7 +2353,7 @@ $('#bUseAnswer').onclick=()=>{if(net.lan)net.lan.accept($('#answerText').value);
 $('#bScanOffer').onclick=()=>BB_LAN.scan('O').then(joinWith).catch(err=>{if(err.message!=='cancelled')setStatus('#joinStatus',err.message,true);});
 $('#bUseOffer').onclick=()=>joinWith($('#offerText').value);
 if(!BB_LAN.ok){$('#bHost').disabled=$('#bJoin').disabled=true;}
-window.__n={net,invite,joinWith,get S(){return S;},get view(){return view;}}; // for the tests in toys-src/bowling-bear/test
+window.__n={net,invite,joinWith,get S(){return S;},get view(){return view;},get nb(){return nb;},camera}; // for the tests in toys-src/bowling-bear/test
 // opened from the host's QR code with the phone's own camera: straight to the join step
 {const code=LAN.takeHash();if(code){
   $('#name2').value=$('#name').value;showScreen('invited');if(!$('#name2').value)$('#name2').focus();
