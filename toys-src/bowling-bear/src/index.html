@@ -2031,11 +2031,15 @@ async function initTable(renderer, onLeave) {
   }
 
   /* ------------------------------------------------------------------ AI */
-  function gauss() { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+  // The computer bowlers draw from their own seeded stream, made afresh for each game, so a game's plans can be
+  // replayed: set __bbTable.seed before starting it (the physics may still differ by a step here and there)
+  const mulberry32 = a => () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  let aiSeed = 0, nextSeed = null, aiR = mulberry32(0);
+  function gauss() { let u = 0, v = 0; while (!u) u = aiR(); while (!v) v = aiR(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
   function aiPlan() {
     const st = standingPins();
-    let x0 = THREE.MathUtils.randFloat(-0.12, 0.22), tx, tz, spin = gauss() * 0.12;
-    if (st.length === 10 || !st.length) { tx = 0.07 * (Math.random() < 0.8 ? 1 : -1); tz = HEAD_Z; }
+    let x0 = -0.12 + aiR() * 0.34, tx, tz, spin = gauss() * 0.12;
+    if (st.length === 10 || !st.length) { tx = 0.07 * (aiR() < 0.8 ? 1 : -1); tz = HEAD_Z; }
     else {
       const front = Math.max(...st.map(p => p.body.position.z));
       const near = st.filter(p => p.body.position.z > front - 0.4);
@@ -2044,8 +2048,8 @@ async function initTable(renderer, onLeave) {
       if (Math.abs(tx) > 0.3) x0 = -Math.sign(tx) * 0.15;
     }
     let ang = Math.atan2(tx - x0, -(tz - BALL_START_Z)) + gauss() * 0.013;
-    if (Math.random() < 0.07) ang += gauss() * 0.045;
-    const speed = 6 + Math.random() * 1.4;
+    if (aiR() < 0.07) ang += gauss() * 0.045;
+    const speed = 6 + aiR() * 1.4;
     return { x0, ang, speed, spin };
   }
   async function aiThrow(id) {
@@ -2113,6 +2117,7 @@ async function initTable(renderer, onLeave) {
   }
   function startGame() {
     session++; const id = session; waiters.length = 0; aim = null; drag = null; paused = false;
+    aiSeed = nextSeed ?? (Math.random() * 4294967296 >>> 0); nextSeed = null; aiR = mulberry32(aiSeed);
     setupEl.hidden = true; setupEl.innerHTML = '';
     const n = seatCount();
     const players = [];
@@ -2305,7 +2310,7 @@ async function initTable(renderer, onLeave) {
   }
   scene.add(bear.root); bear.fit = tableFit;
   bear.pos.copy(laneToWorld(-1.25, -2.0, 0));
-  window.__bbTable = { get game() { return game; }, pins, ball, bear, standingPins, scoreFrames, launchBall, get aim() { return aim; }, prefs, startGame, toSetup, layout, seatGeom, L, pivot, laneToWorld, camera, lane, screenToLane };
+  window.__bbTable = { get game() { return game; }, get seed() { return aiSeed; }, set seed(v) { nextSeed = v >>> 0; }, pins, ball, bear, standingPins, scoreFrames, launchBall, get aim() { return aim; }, prefs, startGame, toSetup, layout, seatGeom, L, pivot, laneToWorld, camera, lane, screenToLane };
   return { enter, frame };
 }
 

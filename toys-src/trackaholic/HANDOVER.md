@@ -149,3 +149,7 @@ Other changes made when the toy joined the site:
 - **Scenery: Rich / Light**, a pill beside Sound (`trackaholic.scenery`; `?scenery=light` in the address overrides it). Light is the scenery exactly as it was, with plain `InstancedMesh` and the old counts, for a slow device or to compare. It only changes how this device looks, so players can differ. `T.scenery` is part of `courseIs`, so a change made away from the title or lobby takes effect on the next race.
 - Measured headless (SwiftShader, 960×540, the same track mid-race, desktop counts): about five times as many props, yet fewer triangles per frame in every landscape (dusk 2.1M → 0.84M, desert 1.39M → 0.97M, reef 2.35M → 1.28M, moon 0.91M → 0.82M, city 1.19M → 0.81M); draw calls unchanged at about 710 (mostly the cars and their shadows); building a world takes the same 0.25–0.37 s. `gameplay.mjs` gives identical results with and without the change. Not yet measured on a real phone.
 - To undo: switch to Light, or `git revert` the commit that added this section (the one before it on `master` is `39f06e3`).
+
+## Seeded bots (2026-11-05)
+
+A bot's lane changes in `botInput` draw from `c.ai.R`, the same mulberry32 stream (`spec.seed + i*31`) that sets its skill, so the same track and grid give the same race. Cars made outside a race (as in `test/gameplay.mjs`) default to `R: () => Math.random()`, called lazily so the test's patched `Math.random` still drives them and its baseline is unchanged.

@@ -440,7 +440,7 @@ function newCar(id,name,color,kind){
   return{id,name,color,kind,local:false,p:new THREE.Vector3(),q:new THREE.Quaternion(),v:new THREE.Vector3(),w:new THREE.Vector3(),
     steer:0,thr:0,brk:0,rev:false,revT:0,nitro:1,boost:false,wc:[0,0,0,0],wcPrev:[0,0,0,0],spin:[0,0,0,0],skid:[0,0,0,0],contact:[false,false,false,false],
     idx:0,lap:0,cp:true,prog:0,done:false,time:0,lapStart:0,best:0,flipT:0,offT:0,wrongT:0,grass:false,hint:-1,slipMax:0,
-    buf:[],rs:null,model:null,ai:{lane:0,lt:0,skill:1,prevE:0},bumped:0};
+    buf:[],rs:null,model:null,ai:{lane:0,lt:0,skill:1,prevE:0,R:()=>Math.random()},bumped:0};
 }
 function placeCar(c,slot){
   const S=T.S,along=(S-6-Math.floor(slot/2)*4+S)%S,lat=(slot%2?-1:1)*3.2,i=Math.floor(along);
@@ -595,7 +595,7 @@ function bumpCars(c,all){
 /* ================= bots ================= */
 function botInput(c,dt){
   const a=c.ai,S=T.S,vf=c.v.length();
-  a.lt-=dt;if(a.lt<=0){a.lt=2+Math.random()*3;a.lane=(Math.random()*2-1)*(HALF_W-2.6)*0.55}
+  a.lt-=dt;if(a.lt<=0){a.lt=2+a.R()*3;a.lane=(a.R()*2-1)*(HALF_W-2.6)*0.55}
   const look=8+vf*0.55,ahead=Math.round(look/SAMPLE),i=(c.idx+ahead)%S;
   // pull towards the inside of the coming corner
   let k=0;for(let j=ahead;j<ahead+25;j++)k+=T.KR[(c.idx+j)%S];
@@ -1127,7 +1127,7 @@ async function setupRace(spec){ // spec: {seed, land, raceId, entrants:[{id,name
   G.raceId=spec.raceId;G.seed=spec.seed;G.laps=spec.laps||G.laps;G.results=null;G.finAt=0;G.resT=0;
   G.cars=G.riders=spec.entrants.map((e,i)=>{const c=newCar(e.id,e.name,e.color,e.kind);
     c.local=(e.kind==='bot'&&G.mode!=='guest')||e.id===spec.meId;
-    if(e.kind==='bot'){const R=mulberry32(spec.seed+i*31);c.ai.skill=0.86+R()*0.16}
+    if(e.kind==='bot'){const R=mulberry32(spec.seed+i*31);c.ai.skill=0.86+R()*0.16;c.ai.R=R} // the same track and grid make the same race
     placeCar(c,i);
     c.model=makeCarModel(e.color,e.name,e.id!==spec.meId);world.add(c.model.root);
     c.rs={p:c.p.clone(),q:c.q.clone(),v:new THREE.Vector3(),steer:0,brk:0,rev:false,wc:c.wc.slice(),spin:[0,0,0,0],prog:c.prog,done:false,thr:0};

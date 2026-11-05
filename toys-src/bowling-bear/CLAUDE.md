@@ -205,3 +205,7 @@ The alley bear walks and sits on the divider between the lane and its neighbour:
 ## Poking the bear (2026-11-05)
 
 A tap that touches either bear (alley or table) pokes it: `pokeBear()` casts the tap's ray and `bear.poke(ray)` makes the bear lean away along the ray, spin according to the side touched, squash and bob, with `sfx.boop`. The tap still does whatever else it would, so a swipe that starts on the bear still bowls. The motion is `makePokes()`, a closed-form damped spring (after mrdoob's Codevember 2026/05) evaluated against the bear's own clock `bear.t`, so a paused table holds it: each poke peaks 0.25 s later, recoils by a fifth and is gone by 2.4 s; pokes add up and `tanh` keeps each component under its limit. It is applied in `bear.update` after the pose, as a tilt about the feet, extra yaw, a squash and a lift on `bear.root`. `window.__n.nb` is the alley bear.
+
+## Seeded computer bowlers (2026-11-05)
+
+Round the table, the computer bowlers' plans (`aiPlan`, `gauss`) draw from `aiR`, a mulberry32 stream made afresh in `startGame()` from `aiSeed`. Set `__bbTable.seed = n` before `startGame()` to replay a game's plans; `__bbTable.seed` reads the current game's seed. Two all-computer 3-frame games with seed 12345 bowled the same rolls headlessly, though the physics isn't guaranteed to match step for step. Sounds and the bear's choice of dance still use `Math.random`.
