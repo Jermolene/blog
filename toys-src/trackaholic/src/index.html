@@ -440,7 +440,7 @@ function newCar(id,name,color,kind){
   return{id,name,color,kind,local:false,p:new THREE.Vector3(),q:new THREE.Quaternion(),v:new THREE.Vector3(),w:new THREE.Vector3(),
     steer:0,thr:0,brk:0,rev:false,revT:0,nitro:1,boost:false,wc:[0,0,0,0],wcPrev:[0,0,0,0],spin:[0,0,0,0],skid:[0,0,0,0],contact:[false,false,false,false],
     idx:0,lap:0,cp:true,prog:0,done:false,time:0,lapStart:0,best:0,flipT:0,offT:0,wrongT:0,grass:false,hint:-1,slipMax:0,
-    buf:[],rs:null,model:null,ai:{lane:0,lt:0,skill:1,prevE:0,R:()=>Math.random()},bumped:0};
+    buf:[],rs:null,model:null,ai:{lane:0,lt:0,skill:1,prevE:0,R:()=>Math.random(),dz:0,dv:0,delay:Math.round(0.5*HZ),resp:1.6,maxA:4,maxV:3},bumped:0};
 }
 function placeCar(c,slot){
   const S=T.S,along=(S-6-Math.floor(slot/2)*4+S)%S,lat=(slot%2?-1:1)*3.2,i=Math.floor(along);
@@ -593,13 +593,39 @@ function bumpCars(c,all){
 }
 
 /* ================= bots ================= */
+/* Bots notice the cars ahead late (after mrdoob's Codevember 2026/05). recordSeen() keeps where every car was,
+   along the track (in samples, continuous) and across it, for the last 1.1 s; each bot sees the others as they
+   were its own reaction time ago. When it is closing on a car in its line, it eases out to pass on the side with more room, through a
+   damped offset (dz) with bounded sideways speed and acceleration, so it never snaps and can be caught out. */
+const SEEN_N=Math.ceil(1.1*HZ)+2,SPAN=Math.round(0.2*HZ),SQ={};let seenStep=0;
+function recordSeen(){seenStep++;const k=seenStep%SEEN_N;
+  for(const o of G.cars){const st=stOf(o);if(!st)continue;let i=o.idx;
+    if(!o.local){trackQuery(st.p.x,st.p.z,o.seenHint??-1,SQ);i=o.seenHint=SQ.i}
+    if(!o.seen)o.seen=new Float32Array(SEEN_N*2).fill(NaN);
+    const dx=st.p.x-T.X[i],dz=st.p.z-T.Z[i];o.seen[k*2]=i+(dx*T.TX[i]+dz*T.TZ[i])/SAMPLE;o.seen[k*2+1]=dx*(-T.TZ[i])+dz*T.TX[i]}}
+function passTarget(c){
+  const a=c.ai,S=T.S,i=c.idx,dx=c.p.x-T.X[i],dz=c.p.z-T.Z[i],me=i+(dx*T.TX[i]+dz*T.TZ[i])/SAMPLE,lat=dx*(-T.TZ[i])+dz*T.TX[i];
+  const k=(seenStep-a.delay+SEEN_N*4)%SEEN_N,k2=(k-SPAN+SEEN_N)%SEEN_N;
+  let best=0,bestW=0;
+  for(const o of G.cars){if(o===c||!o.seen)continue;
+    const oi=o.seen[k*2],ol=o.seen[k*2+1],oi2=o.seen[k2*2];if(oi!==oi||oi2!==oi2)continue; // not seen long enough yet
+    let gap=((oi-me)%S+S)%S;if(gap>S/2)continue;gap*=SAMPLE;
+    let moved=((oi-oi2)%S+S)%S;if(moved>S/2)moved-=S;
+    const closing=c.v.length()-moved*SAMPLE/(SPAN/HZ);
+    const w=sm((40-gap)/30)*sm(closing/2)*sm((3.8-Math.abs(ol-lat))/1.4);if(w<=bestW)continue;
+    const lim=HALF_W-2,up=ol+3.6,dn=ol-3.6,okU=up<=lim,okD=dn>=-lim;
+    const side=okU&&okD?(Math.abs(up-lat)<Math.abs(dn-lat)?up:dn):okU?up:okD?dn:null;
+    if(side===null)continue;best=side;bestW=w}
+  return bestW?(best-a.lane)*bestW:0}
 function botInput(c,dt){
   const a=c.ai,S=T.S,vf=c.v.length();
   a.lt-=dt;if(a.lt<=0){a.lt=2+a.R()*3;a.lane=(a.R()*2-1)*(HALF_W-2.6)*0.55}
+  const want=passTarget(c);let acc=a.resp*a.resp*(want-a.dz)-2*a.resp*a.dv;acc=clamp(acc,-a.maxA,a.maxA);
+  a.dv=clamp(a.dv+acc*dt,-a.maxV,a.maxV);a.dz+=a.dv*dt;
   const look=8+vf*0.55,ahead=Math.round(look/SAMPLE),i=(c.idx+ahead)%S;
   // pull towards the inside of the coming corner
   let k=0;for(let j=ahead;j<ahead+25;j++)k+=T.KR[(c.idx+j)%S];
-  const lane=clamp(a.lane+clamp(k*90,-1,1)*(HALF_W-2.5)*0.6,-(HALF_W-2),HALF_W-2);
+  const lane=clamp(a.lane+a.dz+clamp(k*90,-1,1)*(HALF_W-2.5)*0.6,-(HALF_W-2),HALF_W-2);
   const tx=T.X[i]+(-T.TZ[i])*lane,tz=T.Z[i]+T.TX[i]*lane,ty=T.Y[i];
   _v1.set(tx-c.p.x,ty-c.p.y,tz-c.p.z).applyQuaternion(_q.copy(c.q).invert());
   const alpha=Math.atan2(-_v1.x,Math.max(0.5,_v1.z)),Ld=Math.hypot(_v1.x,_v1.z);
@@ -1136,7 +1162,8 @@ async function setupRace(spec){ // spec: {seed, land, raceId, entrants:[{id,name
   G.raceId=spec.raceId;G.seed=spec.seed;G.laps=spec.laps||G.laps;G.results=null;G.finAt=0;G.resT=0;
   G.cars=G.riders=spec.entrants.map((e,i)=>{const c=newCar(e.id,e.name,e.color,e.kind);
     c.local=(e.kind==='bot'&&G.mode!=='guest')||e.id===spec.meId;
-    if(e.kind==='bot'){const R=mulberry32(spec.seed+i*31);c.ai.skill=0.86+R()*0.16;c.ai.R=R} // the same track and grid make the same race
+    if(e.kind==='bot'){const R=mulberry32(spec.seed+i*31),a=c.ai;a.skill=0.86+R()*0.16;a.R=R; // the same track and grid make the same race
+      a.delay=Math.round((0.35+R()*0.45)*HZ);a.resp=1.3+R()*0.9;a.maxA=3+R()*3;a.maxV=2.5+R()*1.8}
     placeCar(c,i);
     c.model=makeCarModel(e.color,e.name,e.id!==spec.meId);world.add(c.model.root);
     c.rs={p:c.p.clone(),q:c.q.clone(),v:new THREE.Vector3(),steer:0,brk:0,rev:false,wc:c.wc.slice(),spin:[0,0,0,0],prog:c.prog,done:false,thr:0};
@@ -1310,7 +1337,8 @@ function frame(){
       for(const c of G.cars)if(c.local){let inp;
         if(!go)inp={steer:0,thr:0,brk:1};else if(c.kind==='bot'||(c===G.me&&AUTO))inp=botInput(c,h);else inp=pin;
         stepCar(c,inp,h)}
-      for(const c of G.cars)if(c.local)bumpCars(c,G.cars)}
+      for(const c of G.cars)if(c.local)bumpCars(c,G.cars);
+      recordSeen()}
     if(steps>=10)acc=0;
     for(const c of G.cars)if(!c.local)remoteState(c,rdt);
     for(const c of G.cars){const st=stOf(c);poseCar(c.model,st);if(c.model.tag)c.model.tag.visible=camera.position.distanceTo(st.p)>9;
@@ -1475,7 +1503,7 @@ const GU={lan:null,id:null,lobby:null,
 function setStatus(sel,t,err){const e=$(sel);e.textContent=t;e.classList.toggle('err',!!err)}
 
 /* ================= boot ================= */
-window.GW={G,HOST,GU,skyU,renderer,camera,get SCENERY(){return SCENERY},get T(){return T},rebuildCourse,resetCar,tiltCurve,autoGas,HALF_W,HZ,stepCar,botInput,groundH,terrainH,trackQuery,startSolo,setupRace,newCar,placeCar,CAR,accept:c=>HOST.lan.accept(c)};
+window.GW={recordSeen,bumpCars,G,HOST,GU,skyU,renderer,camera,get SCENERY(){return SCENERY},get T(){return T},rebuildCourse,resetCar,tiltCurve,autoGas,HALF_W,HZ,stepCar,botInput,groundH,terrainH,trackQuery,startSolo,setupRace,newCar,placeCar,CAR,accept:c=>HOST.lan.accept(c)};
 window.FL=window.GW;
 resize();
 const hj=LAN.takeHash(); // opened from the host's QR code: taken out of the address, so a reload doesn't reuse it
