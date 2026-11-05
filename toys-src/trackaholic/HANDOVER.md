@@ -153,3 +153,7 @@ Other changes made when the toy joined the site:
 ## Seeded bots (2026-11-05)
 
 A bot's lane changes in `botInput` draw from `c.ai.R`, the same mulberry32 stream (`spec.seed + i*31`) that sets its skill, so the same track and grid give the same race. Cars made outside a race (as in `test/gameplay.mjs`) default to `R: () => Math.random()`, called lazily so the test's patched `Math.random` still drives them and its baseline is unchanged.
+
+## Reflections of the landscape (2026-11-05)
+
+`buildEnv()` no longer lights the paint with a sky copy and four studio cards. At the end of `buildWorld()` it captures the landscape itself with a cube camera (`envCube`, 256 px, half float) 8 m above the middle of the track (the mean of the track samples, over the ground or the water), then filters it with `PMREMGenerator.fromCubemap` (r160's `fromScene` can only capture from the origin). Cars and smoke are hidden and the meteors turned off for the capture. One soft white panel (`envPanel`) is put 90 m overhead for the capture, so the car keeps its shape at night; the desert, the reef's blue-green and the city's lit windows now show in the paint. It is made once per course, so changing landscape, track or scenery remakes it.
