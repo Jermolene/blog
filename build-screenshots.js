@@ -198,6 +198,7 @@ const closeups = {
 	"tools/canon-eos-r10-field-guide": {clip: {x: 125, y: 190, width: 480, height: 480}},
 	"tools/jpegulator": {clip: {x: 330, y: 230, width: 560, height: 560}},
 	"games/jumbleword": {clip: {x: 40, y: 228, width: 480, height: 480}},
+	"toys/clockwork-marble-flick": {clip: {x: 480, y: 560, width: 240, height: 240}},
 	"toys/knottery": {clip: {x: 300, y: 120, width: 600, height: 600}},
 	"games/lala-yala": {clip: {x: 345, y: 200, width: 560, height: 560}},
 	"tools/lenticulator": {clip: {x: 33, y: 253, width: 1132, height: 314}},

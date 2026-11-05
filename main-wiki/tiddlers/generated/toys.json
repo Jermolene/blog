@@ -70,6 +70,20 @@
 		"screenshot": "/screenshots/games/catflap.webp"
 	},
 	{
+		"title": "Toys/clockwork-marble-flick",
+		"caption": "Clockwork Marble Flick",
+		"description": "Blueprints for a wind-up tabletop Marble Flick: a working 3D model of the movement to turn, take apart and wind, six drawing sheets, and the schedules of wheels, speeds and parts",
+		"route": "toys/clockwork-marble-flick",
+		"section": "toys",
+		"url": "/toys/clockwork-marble-flick/",
+		"tags": "toy",
+		"text": "",
+		"category": "trifles",
+		"tagline": "Blueprints for a wind-up Marble Flick, with a working model of its clockwork",
+		"theme-color": "#0a1a30",
+		"screenshot": "/screenshots/toys/clockwork-marble-flick.webp"
+	},
+	{
 		"title": "Toys/engravery",
 		"caption": "Engravery",
 		"description": "Hide a photo in a field of parallel lines, then squint to see it reappear",
