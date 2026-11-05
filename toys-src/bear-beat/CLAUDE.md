@@ -138,3 +138,7 @@ The published toy is `static-assets/toys/bear-beat/index.html` in the blog repo,
 - `icon.svg` (bear face, mirror ball, disco floor) with PNGs from `build-icons.sh`.
 
 To run the harness against the toy, point its page URL at the toy folder.
+
+## Poking a bear (2026-11-05)
+
+A tap on a bear pokes it: the canvas `pointerdown` handler (beside `loop()`) picks the nearest visible bear the tap's ray passes within 0.9 × its scale of, and the bear leans away along the tap, spins by the side touched, squashes and bobs on top of the dance. OrbitControls still gets the same press, so a drag that starts on a bear still turns the view. There is no sound, since the microphone would hear it. The motion is `makePokes()`, a closed-form damped spring (after mrdoob's Codevember 2026/05) on its own clock `pokeT`: each poke peaks 0.25 s later, recoils by a fifth and is gone by 2.4 s, and repeated pokes stay bounded by `tanh`. It is applied to `bear.root` after the dance places it, so `loop()` now sets the root's whole rotation each frame. `window.__bear` gained `camera` and `bears`.
