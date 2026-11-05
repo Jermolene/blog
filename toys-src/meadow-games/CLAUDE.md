@@ -174,3 +174,7 @@ The voice picker's test phrases ("Hello! I am the cow.", "Peekaboo! Fox!") have 
 - Prefers concise, technically precise communication.
 - For generative or toy pages Jeremy's "usual instructions" are: randomise, reset, and 8-way exploration of the
   parameter space.
+
+## Poking animals (2026-11-05)
+
+Every tap that picks an animal pokes it (`pokeAnimal`, called from the canvas `pointerdown` before `game.tap`): it leans away along the tap, spins by the side touched, squashes and bobs, on top of whatever the game does with the tap. The motion is `makePokes()`, a closed-form damped spring (after mrdoob's Codevember 2026/05) on the meadow clock `mtime`: each poke peaks 0.25 s later, recoils by a fifth and is gone by 2.4 s, and repeated pokes add up but stay bounded by `tanh`. It is applied to `a.jolt`, a group between `a.holder` and `a.model`, so headings, popIn/popOut scaling and the animation mixer are untouched.
