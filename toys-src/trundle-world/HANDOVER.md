@@ -208,3 +208,7 @@ SwiftShader runs at a few fps and `dt` is capped, so simulated time runs about 4
 ## Provenance
 
 The toy was built iteratively in Claude chat sessions on 16–23 October 2026. The latest published version is a private Claude artifact titled "Trundle World", and `index.html` is that page with a standard HTML skeleton added.
+
+## Wiggles on a spring (2026-11-05)
+
+`wiggle(o, amt)` now kicks a closed-form damped spring (`makePokes`, after mrdoob's Codevember 2026/05) on the town clock `time`, instead of a fixed decaying sine. Each wiggle stretches the object and rocks it about its z axis, peaks 0.17 s later, rocks back a few times and is gone by 1.6 s. Repeated taps add up but `tanh` keeps them bounded, so a toddler hammering a tree gets a bigger, livelier wobble that never flips it over. A tap rocks the object away from the finger: the tap handler sets `tapDir` (the tap's ray, flattened; or away from the hit point when the view looks straight down) while it runs the object's tap function. Wiggles with no tap behind them (a dinosaur passing a tree) rock a random way, using `Math.random`, so they don't disturb the seeded town. Same channels as before (scale and `rotation.z`, reset to the base scale and 0 when done), and `userData.wig` is still truthy while an object is wiggling. `window.__trundle` exposes `tappables`, `wiggles`, `camera` and `trees` for headless checks.
