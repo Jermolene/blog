@@ -134,6 +134,14 @@ const recipes = {
 		await page.evaluate(`dispatchEvent(new KeyboardEvent("keydown",{code: "ArrowUp"}))`);
 		await page.wait(4000);
 	},
+	"games/plong": async page => {
+		// Reload with every seat a robot and start a local game, to show the
+		// arena in play rather than the menu
+		await page.evaluate(`location.search = "?auto"`);
+		await page.wait(1500);
+		await page.click("button.big");
+		await page.wait(5000);
+	},
 	"games/marble-flick": async page => {
 		// Start a game so that the board is shown instead of the setup card
 		await page.click("#startBtn");
@@ -207,6 +215,7 @@ const closeups = {
 	"games/meadow-games": {clip: {x: 180, y: 150, width: 620, height: 620}},
 	"toys/mimic": {clip: {x: 30, y: 300, width: 500, height: 500}},
 	"tools/over-underiser": {clip: {x: 290, y: 90, width: 620, height: 620}},
+	"games/plong": {clip: {x: 0, y: 0, width: 1200, height: 800}},
 	"games/quizbuzz": {clip: {x: 160, y: 0, width: 600, height: 600}},
 	"toys/radialator": {clip: {x: 150, y: 173, width: 560, height: 560}},
 	"toys/rug-addict": {clip: {x: 155, y: 250, width: 315, height: 315}},

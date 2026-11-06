@@ -267,6 +267,20 @@
 		"screenshot": "/screenshots/tools/over-underiser.webp"
 	},
 	{
+		"title": "Toys/plong",
+		"caption": "Plong",
+		"description": "Pong for everyone at once: each player guards one side of a polygon arena, on one tablet or with phones joining a projector over the same Wi-Fi by QR code. Lose your lives and you haunt the others as a ghost, and a toddler's phone can shrink, wobble or splat anyone",
+		"route": "games/plong",
+		"section": "games",
+		"url": "/games/plong/",
+		"tags": "toy",
+		"text": "",
+		"category": "games",
+		"tagline": "Pong for everyone at once, round a polygon, with phones as paddles",
+		"theme-color": "#000000",
+		"screenshot": "/screenshots/games/plong.webp"
+	},
+	{
 		"title": "Toys/quizbuzz",
 		"caption": "Quizbuzz",
 		"description": "A family quiz show for Christmas: a 1960s TV studio on the big screen, a buzzer on everyone's phone, joined by QR code over the same Wi-Fi, and a toddler button with real power",

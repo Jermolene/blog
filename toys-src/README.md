@@ -7,6 +7,7 @@ Each toy's notes are in its `CLAUDE.md` or `HANDOVER.md`. Read them before makin
 | Toy | Published file is | What's here |
 |---|---|---|
 | `quizbuzz` | **Built** by `build.mjs` (with `build-hook.mjs` for the question bank and fonts) | Source (`src/index.html`), question bank, fonts, tests |
+| `plong` | **Built** by `build.mjs` (with `build-hook.mjs` for the font and the artifact copy) | Source (`src/index.html`), the Press Start 2P font, handover notes, `tests/` (robot games and a real-WebRTC LAN test) |
 | `meadow-games` | **Built**: `python3 tools/build.py --site` writes `index.html` and `models.js` | Source for three apps (only Meadow Games is published), the CC0 animal models, tests |
 | `shared` | | Code that the built toys share: `lan.js` (LAN play over WebRTC and QR codes), the vendored QR libraries, and `test/lan.mjs` |
 | `bowling-bear` | **Built** by `build.mjs` | Source (`src/index.html` and `src/bear-model.js`); notes; the original table-mode handover (`handover/`); the bear model (CC BY 4.0) and `tools/build_toy_model.py`, which writes `src/bear-model.js`; the handover's tests |
@@ -23,10 +24,10 @@ A built toy starts with a comment naming the script that builds it. Don't edit i
 
 ## Building the multiplayer games
 
-Quizbuzz, Bowling Bear and Trackaholic are built from `<toy>/src/index.html` by `build.mjs`:
+Quizbuzz, Bowling Bear, Trackaholic and Plong are built from `<toy>/src/index.html` by `build.mjs`:
 
 ```
-node build.mjs                     # all three
+node build.mjs                     # all of them
 node build.mjs trackaholic         # just one
 ```
 
@@ -37,7 +38,7 @@ Each published page is a single file that needs nothing but itself, Google Fonts
 
 A toy can add a `build-hook.mjs` with `before(html)` and `after(html)` for anything else (Quizbuzz's question bank and fonts, and its artifact copies).
 
-**LAN play** is the same in all three: `shared/lan.js`, whose header explains joining, the codes and reconnecting. A game makes `LAN.game({id, name, channel, store})` and uses its `host()` or `guest()` with callbacks for its own messages; the page also gets `LAN.drawQR`, the in-game scanner (`scan`) and `LAN.takeHash` for a code that arrives in the address. Change it there, rebuild all three, and run `node shared/test/lan.mjs`: a host and two phones per game in separate Chromium processes, joining, reconnecting over the spare links, rejoining after a reload and the messages for wrong codes. Codes carry the protocol version (`V`), so bump it when a change means old and new pages can't talk.
+**LAN play** is the same in Quizbuzz, Bowling Bear and Trackaholic (Plong still has its own, from its handover): `shared/lan.js`, whose header explains joining, the codes and reconnecting. A game makes `LAN.game({id, name, channel, store})` and uses its `host()` or `guest()` with callbacks for its own messages; the page also gets `LAN.drawQR`, the in-game scanner (`scan`) and `LAN.takeHash` for a code that arrives in the address. Change it there, rebuild all three, and run `node shared/test/lan.mjs`: a host and two phones per game in separate Chromium processes, joining, reconnecting over the spare links, rejoining after a reload and the messages for wrong codes. Codes carry the protocol version (`V`), so bump it when a change means old and new pages can't talk.
 
 ## Setting up
 
