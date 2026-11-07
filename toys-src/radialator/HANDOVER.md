@@ -55,3 +55,44 @@ Outputs go to `out/`.
 
 ## Dots mode (2026-11-01)
 The Dots group draws the pattern as a halftone instead of solid ink. `dotCentre()` in the shader finds the nearest dot on a grid, a hex lattice, a sunflower spiral (`spiralCentre()`: dot n at radius h·√((n+½)/π) turned n golden angles; it inverts the local lattice spanned by two consecutive Fibonacci neighbours, with the residuals F·g − round(F·g) passed in double precision as `uFE`) or rings (each ring's dot count is a multiple of `count`, so the N-fold symmetry survives); `dotInk()` averages the solid pattern over a 3×3 box across the cell and optionally lights it as a dome (bigger dots where lit, as in Spotty Sphericle). The radius is `0.5·h·dotSize·√ink`, h = 2·extent/dotN. `buildDotsSVG()` enumerates the same centres and reads the coverage back from a 2048px solid render, so the SVG matches the screen (under 1% mismatch on all layouts). Keep the two in step as with the solid geometry.
+
+## Mosaic mode and the San Marco preset (2026-11-07)
+Colours → Mosaic (`invert = 2`) draws the shapes' outlines as ribbons of coloured stone, after the Cosmati pavement in
+`reference/san-marco.jpeg` (plate II.44, "Marmor-Fußböden in der Marcus-Kirche zu Venedig", lith. Frenzel, printed by
+C. Hildebrandt; rotated and scaled into the frame of a 1030px render). `mosaicAt()` in the shader does it, using layer 0
+only, after the same dome warp and twist:
+- **Lattice.** Going round the ring, a point is covered by an unbroken run of shapes j..e. Its place between the
+  outlines of shapes j−1 and j gives V = j−1 + sd(j−1)/(sd(j−1)−sd(j)); between e and e+1, U = e + sd(e)/(sd(e)−sd(e+1)).
+  Integer V and U are the outlines (the A and B ribbon families), U−V is about the cover count, and U+V is constant
+  along a radius: for circles exactly, as every crossing of circles i and k lies at angle (φi+φk)/2. This works for
+  any shape on the ring, since it only needs the signed distances.
+- **Ribbons.** |V−round V| < `bandA`/2 is an A ribbon, |U−round U| < `bandB`/2 a B ribbon, coloured by strand index
+  through the stone set's A and B lists. Crossings (`fold`): Folded splits each crossing along U+V, B on the clockwise
+  side; Woven alternates which ribbon is on top; Flat puts A on top. Folded also splits each gap along U+V into the
+  shadows of its two B strands (black beside white, green beside yellow on the plate); otherwise gaps are ground.
+- **Cuts and frame.** `cut`: cells with round U − round V below it are ground, so the outermost ribbons end in points
+  along whole cells (cutting on the raw cover count slices them in half: 0.75 against 0.79 agreement at the rim).
+  `frame`: a band of frame colour inside the clip edge (clip 2 or 3), as a fraction of the extent.
+- **Medallion.** With `hub` > 0 the hub becomes a medallion, in units of its radius: frame from 0.87, a ring of `tiles`
+  diamonds (A colour on ground) from 0.667, a folded star of `star` points (B[0] and S[0] halves, tips at 0.667,
+  inner corners at 0.504) on S[1], and an S[1] disc inside 0.358; the star and tiles are turned one shape step. All
+  of these proportions are measured from the plate.
+- **Stones** (`MOSAICS`, menu `mpal`): A list, B list, the shadow beside each B colour, ground, frame, paper. San
+  Marco's are medians of the plate's colour clusters.
+- **Dots** with a mosaic: each dot takes the stone under its centre, on paper; its size follows only the light.
+
+The San Marco preset was fitted to the plate: centre and inner grey ring by circle fit; 16-fold symmetry with 32 red
+strands; mapping each pixel into (U, V) for circles of radius a on a ring of radius d and maximising the colour
+agreement gave a = 395.2px, d = 294.1px against a rim (outer edge of the grey frame) of 515px, so offset 0.5711 and
+size 0.7674 (every circle grazes a circle of radius 0.197, under the medallion), bands 0.50 and 0.48, cut 10, hub
+0.239, frame 0.049. Pixel agreement with the plate: rosette 0.86, medallion 0.83, whole disc 0.78. The ring just
+outside the medallion (0.24–0.35) is the exception (0.22): there the artist coarsened the lattice into larger blocks,
+which this construction doesn't attempt.
+
+SVG: `buildMosaicSVG()` renders at 2048px, gives each pixel the nearest stone colour and traces each colour's pixel
+boundary into closed loops (any pairing of edges at a corner is right under even-odd fill), straightened by
+Douglas–Peucker to 0.7px, with a 0.6-unit stroke of the same colour to close hairline seams. About 3 MB and 1 s for
+the preset; 2.9% colour mismatch against WebGL at 1000px. `buildDotsSVG()` reads the stones the same way.
+
+Checks: `node tools/compare_san_marco.mjs` (Node Playwright from toys-src) prints the agreement per zone and writes
+out/san-marco-mine.png and out/san-marco-diff.png.

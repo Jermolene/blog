@@ -18,6 +18,9 @@ conventions shared by the shader and the SVG exporter, and known gaps.
 ## Invariants
 - The shader (`FS`) and `buildSVG()` must stay geometrically identical. Any change to the pattern
   maths goes into both, then run `python3 tools/check_svg.py` (expect mismatch < ~4%).
+- Mosaic mode (Colours → Mosaic) has its own shader path, `mosaicAt()`; its SVG is traced from a render, so it needs no
+  vector twin, but the San Marco preset must still match its plate: `node tools/compare_san_marco.mjs` (baseline in
+  the script's header; see HANDOVER.md).
 - Reset must still reproduce the reference: run `python3 tools/compare_reference.py`
   (baseline ~5.7% overall mismatch; regressions show up first in the 200–950px radius bands).
 - Tools need `pip install playwright numpy pillow` and a Chromium for Playwright.
