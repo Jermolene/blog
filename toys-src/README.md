@@ -8,6 +8,7 @@ Each toy's notes are in its `CLAUDE.md` or `HANDOVER.md`. Read them before makin
 |---|---|---|
 | `quizbuzz` | **Built** by `build.mjs` (with `build-hook.mjs` for the question bank and fonts) | Source (`src/index.html`), question bank, fonts, tests |
 | `plong` | **Built** by `build.mjs` (with `build-hook.mjs` for the font and the artifact copy) | Source (`src/index.html`), the Press Start 2P font, handover notes, `tests/` (robot games and a real-WebRTC LAN test) |
+| `arterial-britain` | **Built**: `python3 build.py` inlines the road data and fonts into `app.html` | Source, the road network and the script that made it from OS Open Roads (`prep.py`), fonts, tests |
 | `meadow-games` | **Built**: `python3 tools/build.py --site` writes `index.html` and `models.js` | Source for three apps (only Meadow Games is published), the CC0 animal models, tests |
 | `shared` | | Code that the built toys share: `lan.js` (LAN play over WebRTC and QR codes), the vendored QR libraries, and `test/lan.mjs` |
 | `bowling-bear` | **Built** by `build.mjs` | Source (`src/index.html` and `src/bear-model.js`); notes; the original table-mode handover (`handover/`); the bear model (CC BY 4.0) and `tools/build_toy_model.py`, which writes `src/bear-model.js`; the handover's tests |

@@ -14,6 +14,20 @@
 		"screenshot": "/screenshots/games/animal-island.webp"
 	},
 	{
+		"title": "Toys/arterial-britain",
+		"caption": "Arterial Britain",
+		"description": "Posters of the roads of England, Scotland and Wales, drawn by where they take you: watersheds that split the country by which of a few places is nearest by car, all roads leading to one place with each road as thick as the land or people it serves, and the fairest place for up to eight travellers to meet. Routing runs in the browser over motorways, A and B roads and ferries. Tap the map to choose places, randomise, explore variations and save SVG or PNG",
+		"route": "toys/arterial-britain",
+		"section": "toys",
+		"url": "/toys/arterial-britain/",
+		"tags": "toy",
+		"text": "",
+		"category": "trifles",
+		"tagline": "Every road in Britain, drawn by where it takes you",
+		"theme-color": "#e9e7e0",
+		"screenshot": "/screenshots/toys/arterial-britain.webp"
+	},
+	{
 		"title": "Toys/bear-beat",
 		"caption": "Bear Beat",
 		"description": "Animated bears dance on a light-up disco floor to the beat of whatever they hear: the microphone, a song file, a built-in groove or tapped tempo. Ten routines from the Moonwalk to the Macarena, for one to four bears",

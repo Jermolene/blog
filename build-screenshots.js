@@ -97,6 +97,11 @@ const recipes = {
 	"tools/lenticulator": async page => {
 		await page.scrollTo("h2");
 	},
+	"toys/arterial-britain": async page => {
+		// Wait for the road network to be decoded and the first poster to be drawn
+		await page.evaluate(`new Promise(resolve => { const check = () => document.getElementById("load").hidden ? resolve(true) : setTimeout(check,200); check(); })`);
+		await page.wait(1500);
+	},
 	"toys/mimic": async page => {
 		await page.click("button[onclick]");
 	},
@@ -196,6 +201,7 @@ const closeups = {
 	"archive/cecily": {clip: {x: 120, y: 80, width: 640, height: 640}},
 	"talkytalky": {clip: {x: 300, y: 320, width: 330, height: 330}},
 	"games/animal-island": {clip: {x: 300, y: 170, width: 520, height: 520}},
+	"toys/arterial-britain": {clip: {x: 250, y: 290, width: 420, height: 420}},
 	"toys/bear-beat": {clip: {x: 390, y: 200, width: 420, height: 420}},
 	"toys/blobbles": {clip: {x: 560, y: 100, width: 520, height: 520}},
 	"games/bowling-bear": {clip: {x: 440, y: 230, width: 420, height: 420}},
