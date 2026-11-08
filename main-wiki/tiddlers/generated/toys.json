@@ -295,6 +295,20 @@
 		"screenshot": "/screenshots/games/plong.webp"
 	},
 	{
+		"title": "Toys/quadrille",
+		"caption": "Quadrille",
+		"description": "A pattern toy that builds interlaced op art bands from one element, a striped quarter disc in the corner of a square: stack the discs in each cell and their stripes join into arches, S-bends, chains and braids. Tap a cell to change it, try the presets taken from hand-drawn sketches, randomise, explore variations and save SVG or PNG",
+		"route": "toys/quadrille",
+		"section": "toys",
+		"url": "/toys/quadrille/",
+		"tags": "toy",
+		"text": "",
+		"category": "trifles",
+		"tagline": "Striped quarter discs stacked on a grid interlace into op art bands and braids",
+		"theme-color": "#e9ecf6",
+		"screenshot": "/screenshots/toys/quadrille.webp"
+	},
+	{
 		"title": "Toys/quizbuzz",
 		"caption": "Quizbuzz",
 		"description": "A family quiz show for Christmas: a 1960s TV studio on the big screen, a buzzer on everyone's phone, joined by QR code over the same Wi-Fi, and a toddler button with real power",

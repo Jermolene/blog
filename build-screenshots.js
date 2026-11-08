@@ -218,6 +218,7 @@ const closeups = {
 	"tools/over-underiser": {clip: {x: 290, y: 90, width: 620, height: 620}},
 	"games/plong": {clip: {x: 0, y: 0, width: 1200, height: 800}},
 	"games/quizbuzz": {clip: {x: 160, y: 0, width: 600, height: 600}},
+	"toys/quadrille": {clip: {x: 150, y: 213, width: 376, height: 376}},
 	"toys/radialator": {clip: {x: 150, y: 173, width: 560, height: 560}},
 	"toys/rug-addict": {clip: {x: 155, y: 250, width: 315, height: 315}},
 	"toys/spotty-sphericle": {clip: {x: 110, y: 90, width: 590, height: 590}},
