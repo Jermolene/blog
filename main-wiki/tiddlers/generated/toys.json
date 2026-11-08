@@ -380,6 +380,20 @@
 		"screenshot": "/screenshots/toys/sunthesis.webp"
 	},
 	{
+		"title": "Toys/swelled-rules",
+		"caption": "Swelled Rules",
+		"description": "Columns of swelled rules, the printer's ornamental lines that are thick in the middle and fine at the ends, bent into S-curves that rise, fall or cross so the rules weave into feathers, stripes and lattices. Click a column to change its direction, try the presets drawn from hand-made sketches, randomise, explore variations and save SVG or PNG",
+		"route": "toys/swelled-rules",
+		"section": "toys",
+		"url": "/toys/swelled-rules/",
+		"tags": "toy",
+		"text": "",
+		"category": "trifles",
+		"tagline": "Printer's swelled rules bent into curves that weave into feathers and lattices",
+		"theme-color": "#dde2e4",
+		"screenshot": "/screenshots/toys/swelled-rules.webp"
+	},
+	{
 		"title": "Toys/lenticulator",
 		"caption": "The Lenticulator",
 		"description": "Print and fold lenticular pictures that change as the observer moves",

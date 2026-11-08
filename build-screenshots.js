@@ -223,6 +223,7 @@ const closeups = {
 	"toys/rug-addict": {clip: {x: 155, y: 250, width: 315, height: 315}},
 	"toys/spotty-sphericle": {clip: {x: 110, y: 90, width: 590, height: 590}},
 	"toys/sunthesis": {clip: {x: 140, y: 110, width: 580, height: 580}},
+	"toys/swelled-rules": {clip: {x: 240, y: 110, width: 420, height: 420}},
 	"games/trackaholic": {clip: {x: 240, y: 60, width: 720, height: 720}},
 	"games/trundle-world": {clip: {x: 300, y: 60, width: 640, height: 640}},
 	"tools/tunerful": {clip: {x: 320, y: 50, width: 560, height: 560}},

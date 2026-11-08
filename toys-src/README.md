@@ -17,6 +17,7 @@ Each toy's notes are in its `CLAUDE.md` or `HANDOVER.md`. Read them before makin
 | `animal-island`, `trundle-world` | Edited in place | Notes and checks |
 | `fractaliser`, `lala-yala`, `rug-addict` | Edited in place | Handover notes |
 | `quadrille` | Edited in place | Handover notes, the sketch sheet its presets were fitted to and the fitting script (`tools/fit_sketch.py`), and a smoke test (`tests/smoke.js`) |
+| `swelled-rules` | Edited in place | Handover notes, the sketch sheet it reproduces and a smoke test (`tests/smoke.mjs`) |
 | `radialator` | Edited in place | Notes, the reference image it reproduces and its render checks (`tools/`, Python and Playwright) |
 | `lozengineer` | Edited in place | Handover notes, the tools that decoded its reference image, and its regression test (`tools/`); the reference image itself is not committed (unknown licence) and lives in `local/lozengineer/` |
 | `canon-eos-r10-field-guide` | Edited in place | Handover notes and `tools/screenshot.sh`, a headless render check |
