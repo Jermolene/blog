@@ -210,6 +210,7 @@ const closeups = {
 	"toys/knottery": {clip: {x: 300, y: 120, width: 600, height: 600}},
 	"games/lala-yala": {clip: {x: 345, y: 200, width: 560, height: 560}},
 	"tools/lenticulator": {clip: {x: 33, y: 253, width: 1132, height: 314}},
+	"toys/lozengineer": {clip: {x: 170, y: 120, width: 560, height: 560}},
 	"games/marble-flick": {clip: {x: 250, y: 180, width: 600, height: 600}},
 	"toys/marblelous": {clip: {x: 560, y: 90, width: 570, height: 570}},
 	"games/meadow-games": {clip: {x: 180, y: 150, width: 620, height: 620}},
