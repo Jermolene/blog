@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """How the reference pattern was decoded (needs pillow, numpy).
 
-Samples the reference image (local/lozengineer/reference.jpeg, not committed) on its triangular lattice, prints the stripe-direction map
+Samples reference/reference.jpeg on its triangular lattice, prints the stripe-direction map
 for one 20x15 repeat, then derives the 4x3 coarse lozenge cell (BRICK in index.html)
 and checks that it is a valid dimer cover.
 """
@@ -10,7 +10,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-a = np.array(Image.open(Path(__file__).resolve().parents[3] / 'local/lozengineer/reference.jpeg').convert('L'), float)
+a = np.array(Image.open(Path(__file__).resolve().parent.parent / 'reference/reference.jpeg').convert('L'), float)
 H, W = a.shape
 s, p = 776 / 15, 896 / 20          # lattice edge length; spacing between parallel lattice lines
 C, R = 20, 15                      # repeat in fine lattice columns and rows

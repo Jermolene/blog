@@ -2,7 +2,7 @@
 
 Single-file WebGL 2 op-art toy. All the code is in `static-assets/toys/lozengineer/index.html`, edited in place: no build step and no runtime dependencies apart from Google Fonts (Monoton, Barlow Semi Condensed).
 
-Started from a reference image. Its source and licence are unknown, so it is not committed: it is kept in the gitignored `local/lozengineer/reference.jpeg` at the root of the repository. The default state must keep reproducing that image: run the regression test (see Verification) after any change to geometry, stripe rendering or defaults.
+Started from a reference image by Jeremy (`reference/reference.jpeg`). The default state must keep reproducing that image: run the regression test (see Verification) after any change to geometry, stripe rendering or defaults.
 
 **2026-11-08: integrated into jermolene.com** from a claude.ai handover. The page was wrapped in the site's toy skeleton (PWA tags, description, tagline, `toy-category` trifles), given an `icon.svg`, and given a browser download for saving outside claude.ai.
 
@@ -78,7 +78,7 @@ From `toys-src/lozengineer`, after `npm install` in `toys-src` (see its README) 
 node tools/render_default.js && python3 tools/compare.py
 ```
 
-The render goes to `out/` (gitignored). Without the reference image in `local/`, only the smoke test runs.
+The render goes to `out/` (gitignored).
 
 Expected: threshold mismatch about 1.65% at 2576×1884 and no page errors. The script fails above 2%. It also smoke-tests six modes, reports SVG size, and checks each cell is a valid dimer cover (`bad: 0`).
 
@@ -106,4 +106,4 @@ Expected: threshold mismatch about 1.65% at 2576×1884 and no page errors. The s
 3. Search small periodic cells for more Brick-like tilings. Scramble reaches them, but only at random.
 4. Consider a tile-painting mode for larger hand-edited cells.
 
-The reference image is only for the regression test; its source and licence are unknown, so never commit or ship it.
+The reference image is only for the regression test; it is not part of the published toy.
