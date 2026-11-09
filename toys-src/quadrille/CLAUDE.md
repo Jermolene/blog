@@ -1,6 +1,6 @@
 # Quadrille
 
-A single-page pattern toy. It builds interlaced op-art bands from one element: a striped quarter disc on a square grid. It came from a sheet of hand-made vector sketches (`reference/sketches.jpeg`). Everything is in `static-assets/toys/quadrille/index.html`, edited in place, with no build step and no dependencies except three Google Fonts.
+A single-page pattern toy. It builds interlaced op-art bands from one element: a striped quarter disc on a square grid. It came from a sheet of Jeremy's hand-made vector sketches (`reference/sketches.jpeg`). Everything is in `static-assets/toys/quadrille/index.html`, edited in place, with no build step and no dependencies except three Google Fonts.
 
 Published at `/toys/quadrille/` on jermolene.com. **2026-11-08: integrated into jermolene.com** from a claude.ai handover: the page was wrapped in the site's toy skeleton (PWA tags, description, tagline, `toy-category` trifles) and given an `icon.svg`. It began as the artifact https://claude.ai/artifact/3HhLv6z6Sxjg45nbgUphPo, which is no longer kept up to date.
 
