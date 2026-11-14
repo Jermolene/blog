@@ -12,6 +12,7 @@ Published at `/toys/quadrille/` on jermolene.com. **2026-11-08: integrated into 
 - That centring is the key fact. Bands are symmetric under `r -> 1 - r`, so stripes join across a shared edge whether the neighbouring disc is centred at the same end (an arch) or the opposite end (an S-bend, band `k` meets band `n-1-k`). It also gives the ring with a white centre at junctions.
 - Anything applied to bands must stay palindromic in `k` to keep joins intact: swell uses `|2c - 1|`, Bands colouring uses `min(k, n-1-k)`.
 - Slide and Drift shift bands by `+phase` on even lattice points and `-phase` on odd ones. Both ends of an edge have opposite parity, so joins survive.
+- Finishing (2026-11-14) adds a second element, the cap: a half disc of concentric half rings centred on an edge, which turns band `k` back into band `n-1-k`. An edge is either fully striped or bare, so a cap fits any open edge. It goes on every striped edge with nothing facing it: outside the sheet (a half-cell margin, giving a scalloped outline) and, with Cap inner ends, inside the sheet over an empty neighbour, drawn above all the discs. A cap takes the colour of the disc it closes, so strand colouring needs no change. With a non-zero Slide the cap centre moves to `0.5 + phi/n` and the thin slivers at the corners don't quite pair up; Jeremy accepted that imperfection.
 
 ## Fit to the sketches
 
@@ -25,13 +26,15 @@ Presets in `PRESETS`: Cable, Chain, Braid, Waves, Scales, Cloud and Fragment are
 
 `g` is the whole design:
 
-`{ cols, rows, mw, mh, motif: [string; mw*mh], shift, n, ink, swell, phase, mode, inks: [4 colours], paper }`
+`{ cols, rows, mw, mh, motif: [string; mw*mh], shift, n, ink, swell, phase, finish, finishInner, mode, inks: [4 colours], paper }`
+
+`finish` is off in every preset, so the opening still reproduces the sketch. `finishInner` defaults to on, and a missing value counts as on. Choosing a preset keeps the current finishing settings. Explore can toggle `finish` as a pattern mutation.
 
 `mode` is `one`, `strands`, `depth` or `bands`. `stackAt` maps a sheet cell to a motif index, with `shift` staggering each repeat row. `history` is an undo stack of JSON snapshots. `view` is `null` (fit) or `{ z, cx, cy }`: zoom over fit, and the cell coordinate at the stage centre. Whole-design changes go through `setG`, which resets the view. Edits and sliders keep it.
 
 ## Code map (`index.html`, one script)
 
-- Geometry: `bandTable` (band radii and widths), `strands` (union-find over edge joins, using the topmost disc on each side), `walk` (visits every disc).
+- Geometry: `bandTable` (band radii and widths), `strands` (union-find over edge joins, using the topmost disc on each side), `walk` (visits every disc, then every cap when finished), `topLayer`, `capTable` (cap rings), `SIDES`, `margin`.
 - Drawing: `paint` (Canvas 2D, culls off-screen discs), `layout` (fit), `viewLayout` (fit plus pan and zoom), `drawMain`, `drawThumb`.
 - Input: pointer handlers on `#sheet`. Under 6px of movement is a tap. Two pointers pinch. `zoomAt` and `panBy` update `view`.
 - Generation: `randomPattern`, `randomStripes`, `randomColour`, `MUTATIONS`, `mutate`, `rollVariants`.
@@ -50,7 +53,7 @@ Save SVG and Save PNG use the claude.ai `downloads` capability when `window.clau
 
 ## Testing
 
-`node tests/smoke.js` from this folder, with the Playwright in `toys-src` (see its README). It tests the published page. It covers zoom, pan, tap, undo, a synthetic pinch, Random, Reset, Explore, both saves and phone width. It depends on the page's top-level names (`g`, `view`, `mainL`, `sheet`).
+`node tests/smoke.js` from this folder, with the Playwright in `toys-src` (see its README). It tests the published page. It covers zoom, pan, tap, undo, a synthetic pinch, Random, Reset, Explore, both saves, finishing and phone width. It depends on the page's top-level names (`g`, `view`, `mainL`, `sheet`).
 
 Not tested: a real pinch on an iPad.
 

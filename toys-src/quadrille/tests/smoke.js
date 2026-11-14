@@ -57,6 +57,19 @@ const assert = require('assert');
   const [dp] = await Promise.all([p.waitForEvent('download'), p.click('#savePng')]);
   assert.strictEqual(dp.suggestedFilename(), 'quadrille.png');
 
+  // Finishing: Fragment has open ends both on the outline and inside the sheet.
+  await p.locator('#presets button').nth(6).click();
+  const caps = () => p.evaluate(() => { let n = 0; walk(g, 0, () => {}, () => n++); return n; });
+  assert.strictEqual(await caps(), 0, 'unfinished sheet has no caps');
+  await p.click('#finish');
+  const all = await caps();
+  assert(all > 0, 'finishing adds caps');
+  assert((await p.evaluate(() => svgText(g))).startsWith('<svg xmlns="http://www.w3.org/2000/svg" viewBox="-50 -50'), 'SVG has a margin for the caps');
+  await p.click('#finishInner');
+  assert(await caps() < all, 'inner caps can be turned off');
+  await p.click('#undo'); await p.click('#undo');
+  assert.strictEqual(await caps(), 0, 'undo unfinishes');
+
   const m = await b.newPage({ viewport: { width: 400, height: 800 } });
   await m.route('**fonts.g**', r => r.abort());
   m.on('pageerror', e => errs.push(e.message));
