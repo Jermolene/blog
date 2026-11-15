@@ -1,6 +1,6 @@
 // Smoke test of the published page, static-assets/toys/swelled-rules/index.html, opened from disk.
 // Run from toys-src/swelled-rules: node tests/smoke.mjs   (needs toys-src's npm install, with Chromium)
-// Covers a column click, Undo, Randomise, Reset, the presets, Explore, both saves and phone width.
+// Covers a column click, the weight and spacing curves, Undo, Randomise, Reset, the presets, Explore, both saves and phone width.
 import { chromium } from '../../node_modules/playwright/index.mjs';
 import assert from 'assert';
 import path from 'path';
@@ -29,6 +29,28 @@ await p.click('#randomise'); await p.waitForTimeout(60);
 assert.notStrictEqual(await st(), s0, 'randomise changes the pattern');
 await p.click('#reset'); await p.waitForTimeout(60);
 assert.strictEqual(await st(), s0, 'reset restores the opening sketch');
+
+// curve editors: click adds a point and dragging moves it, double-click removes it, Undo and Reset
+const curve = async (key, i) => {
+  const r = await p.locator('#curves svg').nth(i).boundingBox(), sc = r.width / 110;
+  return { at: (x, y) => [r.x + (5 + x * 100) * sc, r.y + (5 + (1 - y) * 100) * sc] };
+};
+for (const [key, i] of [['wCurve', 0], ['sCurve', 1]]) {
+  const c = await curve(key, i);
+  await p.mouse.move(...c.at(.5, .5)); await p.mouse.down();
+  await p.mouse.move(...c.at(.55, .85), { steps: 4 }); await p.mouse.up(); await p.waitForTimeout(60);
+  const pts = await p.evaluate(k => S[k], key);
+  assert.strictEqual(pts.length, 3, key + ' gains a point');
+  assert(Math.abs(pts[1][0] - .55) < .02 && Math.abs(pts[1][1] - .85) < .02, key + ' point follows the drag ' + JSON.stringify(pts));
+  await p.mouse.dblclick(...c.at(pts[1][0], pts[1][1])); await p.waitForTimeout(60);
+  assert.strictEqual((await p.evaluate(k => S[k], key)).length, 2, key + ' double-click removes the point');
+  await p.click('#undo'); await p.waitForTimeout(60);
+  assert.strictEqual((await p.evaluate(k => S[k], key)).length, 3, key + ' undo brings it back');
+}
+const bodies = await p.evaluate(() => [bounds(S).body, rows(S).ys[28], rows(fromPreset(0)).ys[28]]);
+assert(bodies[1] > bodies[2] + 1, 'spacing curve moves the middle rule down');
+await p.click('#reset'); await p.waitForTimeout(60);
+assert.strictEqual(await st(), s0, 'reset clears the curves');
 
 const presets = await p.evaluate(() => PRESETS.length);
 for (let i = 0; i < presets; i++) await p.evaluate(i => { S = fromPreset(i); changed(); }, i);

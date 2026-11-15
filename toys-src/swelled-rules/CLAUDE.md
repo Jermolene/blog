@@ -23,7 +23,8 @@ Pattern state `S` is a flat object:
 | `rise` | Vertical travel across a column, in multiples of pitch |
 | `k` | Tension, 0 to 1 |
 | `t` | Rule weight as a fraction of pitch |
-| `drift` | Weight gradient from the first rule to the last, -1 to 1 |
+| `wCurve` | Weight along the run of rules: `[x, y]` points in 0..1, x from first rule to last, y 0.5 meaning weight `t` and 1 twice it. Replaced the old `drift` slider (a straight line) |
+| `sCurve` | Spacing: y is where rule x sits down the run `(n-1)*p`; the diagonal is even spacing |
 | `hair` | Stroke added round each rule so the tips stay visible |
 | `stagger` | Vertical shift of odd columns, in pitches |
 | `spine`, `spineW`, `tail`, `spineC` | Vertical bar at the centre of the sheet, and how far it runs past the last rule |
@@ -42,6 +43,8 @@ Rising rules are the vertical mirror. The swell needs no width calculation: a ru
 
 `ribbon()` draws that shape. `traceRules()` and `traceBands()` write it to a sink with `m/l/c/z` methods, either `canvasOut()` or `svgOut()`, so the canvas and the SVG export share one generator. All ribbons of one colour and direction are one compound path, so translucent bands don't double up where they touch.
 
+`rows()` turns the two curves into each rule's offset and weight. `curveFn()` interpolates the points with a monotone cubic (Fritsch and Carlson), so the curve never overshoots a point and an increasing spacing curve keeps the rules in order.
+
 Paint order, for each direction (falling on top by default): bands at `alpha`, then opaque rules. The feather's olive lines are the lower layer's dark rules seen through the upper layer's 60% bands.
 
 ## Measurements from the sketches
@@ -57,6 +60,7 @@ Paint order, for each direction (falling on top by default): bands at `alpha`, t
 - The view is `{z, x, y}`, applied on top of the fitted sheet in `paint()`. `paint()` culls columns and rows outside the viewport, which keeps deep zoom quick. Export ignores the view and always writes the whole pattern.
 - On the main view, a press that moves less than 5px is a click and cycles that column. Anything further pans; two pointers pinch. The element has `touch-action: none`.
 - Each Explore neighbour varies one aspect (`AXES`, `MUTATE`). They share the main view's zoom and pan, redrawn after a 120ms pause.
+- The Weight and Spacing curve editors under Rules work like an image editor's Curves panel: drag a point, click empty space to add one, double-click (two presses within 350ms, so it works on touch too) or Delete to remove an inner one; the end points move only vertically. Arrow keys move the selected point, Page Up/Down select another. One Undo entry per drag. Randomise sometimes gives a drift, swell or squeeze; Explore's Curves neighbour nudges a curve or the stagger.
 - Undo history is a stack of state snapshots. Slider drags commit one entry on `change`.
 
 ## Output
@@ -65,7 +69,7 @@ Paint order, for each direction (falling on top by default): bands at `alpha`, t
 
 ## Tested and not tested
 
-`node tests/smoke.mjs` from this folder (with the Playwright in `toys-src`, see its README) checks the published page: a column click, Undo, Randomise, Reset, the presets, Explore, both saves and phone width, with no page errors.
+`node tests/smoke.mjs` from this folder (with the Playwright in `toys-src`, see its README) checks the published page: a column click, adding, dragging and removing curve points, Undo, Randomise, Reset, the presets, Explore, both saves and phone width, with no page errors.
 
 Tested by hand in headless Chromium: column clicks, Undo, Explore, Randomise, wheel zoom, drag, synthetic pinch, zoom bar, phone-width layout.
 Not tested: a real iPad or phone; Save inside the Claude viewer.
