@@ -96,3 +96,22 @@ the preset; 2.9% colour mismatch against WebGL at 1000px. `buildDotsSVG()` reads
 
 Checks: `node tools/compare_san_marco.mjs` (Node Playwright from toys-src) prints the agreement per zone and writes
 out/san-marco-mine.png and out/san-marco-diff.png.
+
+## Crossing rings, nested layers and the Nested rosette preset (2026-11-15)
+`reference/nested-rosette.png` is a 40-fold rosette whose cells are all triangles, with a finer rosette inside a jagged seam.
+- **Crossing rings** (Overlays → Crossing rings, `xrings`): circles i and i+m of a layer cross at radii ρ where
+  cos(πm/N) = (ρ²+d²−r²)/(2ρd), so the shader adds floor(N·acos(f)/π) to the cover count (N inside the hole the circles
+  leave when r > d). A ring through every crossing row turns each diamond into two triangles. Exact for circles; other
+  shapes use the same formula with their size. `buildSVG` draws the rings at both roots for m = 1..N (m = N is the hole's edge).
+- **Layer size** (`layerSize`) scales the shapes of layers ≥ 1 on top of Layer scale, so a nested layer can have its own
+  size-to-offset ratio.
+- **Nest at cover** (`nest` = K > 0): where layer l's shapes cover a point K or more times, layer l+1 takes over with count
+  K + its own count, rather than being XOR'd in. The seam runs along the outer layer's circle outlines, so it follows whole
+  cells. Even-odd fill can't express the swap, so with nesting the SVG is traced from a 2048px render (`buildTracedSVG`).
+- **Fit**: the outer layer was fitted with a numpy model of circles + crossing rings (offset 0.884, size 1.1176, rim 1,
+  notch 0.076, dome 0); it agrees cell for cell outside the seam (the target's ink is slightly bolder). The inner disc's rows
+  are more evenly spaced than any single circle family gives, so the inner layer (scale 0.2093, size 0.919, nest 27) matches
+  its character (seam, cell size, small hub) rather than its pixels; the seam sits at ~0.38 against the target's 0.32. The
+  preset is turned π/40 relative to the image.
+- Checks: SVG vs WebGL for the preset 1.0%, crossing rings without nesting 0.6–1.7%. Random patterns with large twist or
+  clip-to-shapes already mismatched before this change (same numbers on the old file).
