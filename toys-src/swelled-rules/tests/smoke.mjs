@@ -1,6 +1,6 @@
 // Smoke test of the published page, static-assets/toys/swelled-rules/index.html, opened from disk.
 // Run from toys-src/swelled-rules: node tests/smoke.mjs   (needs toys-src's npm install, with Chromium)
-// Covers a column click, the weight and spacing curves, Undo, Randomise, Reset, the presets, Explore, both saves and phone width.
+// Covers a column click, the weight and spacing curves, band sequences, Undo, Randomise, Reset, the presets, Explore, both saves and phone width.
 import { chromium } from '../../node_modules/playwright/index.mjs';
 import assert from 'assert';
 import path from 'path';
@@ -32,6 +32,7 @@ assert.strictEqual(await st(), s0, 'reset restores the opening sketch');
 
 // curve editors: click adds a point and dragging moves it, double-click removes it, Undo and Reset
 const curve = async (key, i) => {
+  await p.locator('#curves svg').nth(i).scrollIntoViewIfNeeded();
   const r = await p.locator('#curves svg').nth(i).boundingBox(), sc = r.width / 110;
   return { at: (x, y) => [r.x + (5 + x * 100) * sc, r.y + (5 + (1 - y) * 100) * sc] };
 };
@@ -54,6 +55,21 @@ assert.strictEqual(await st(), s0, 'reset clears the curves');
 
 const presets = await p.evaluate(() => PRESETS.length);
 for (let i = 0; i < presets; i++) await p.evaluate(i => { S = fromPreset(i); changed(); }, i);
+
+// band sequences: add a colour and a gap, remove one, give rising rules their own, and the SVG carries every colour but no gap
+await p.evaluate(() => { S = fromPreset(PRESETS.findIndex(q => q.name === 'Flame')); changed(); });
+const nF = await p.evaluate(() => S.bands.length);
+await p.click('#addF'); await p.click('#gapF');
+assert.strictEqual(await p.evaluate(() => S.bands.length), nF + 2, 'a colour and a gap are added');
+assert.strictEqual(await p.evaluate(() => S.bands.at(-1)), '', 'the gap is empty');
+await p.locator('#seqF > div').first().hover(); await p.locator('#seqF .del').first().click();
+assert.strictEqual(await p.evaluate(() => S.bands.length), nF + 1, 'a band is removed');
+await p.click('#ownR');
+assert(await p.evaluate(() => Array.isArray(S.bandsR) && !document.getElementById('wrapR').hidden), 'rising rules get their own bands');
+await p.evaluate(() => { S = fromPreset(PRESETS.findIndex(q => q.name === 'Sawtooth')); changed(); });
+const svg = await p.evaluate(() => toSVG(S));
+assert(await p.evaluate(svg => [...S.bands, ...S.bandsR].filter(Boolean).every(c => svg.includes(c)), svg), 'the SVG has every band colour');
+assert(!svg.includes('fill=""'), 'gaps are not drawn');
 await p.evaluate(() => { S = fromPreset(0); changed(); });
 
 await p.click('#explore'); await p.waitForTimeout(500);

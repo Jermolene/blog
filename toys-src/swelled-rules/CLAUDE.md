@@ -28,7 +28,8 @@ Pattern state `S` is a flat object:
 | `hair` | Stroke added round each rule so the tips stay visible |
 | `stagger` | Vertical shift of odd columns, in pitches |
 | `spine`, `spineW`, `tail`, `spineC` | Vertical bar at the centre of the sheet, and how far it runs past the last rule |
-| `paper`, `rule`, `a`, `b`, `alpha` | Colours; `a`/`b` alternate as bands between rules at opacity `alpha` (0 means rules only) |
+| `paper`, `rule`, `alpha` | Colours; band opacity `alpha` (0 means rules only) |
+| `bands`, `bandsR` | Band colours in turn down the run of rules, cycling; `""` is a gap. `bandsR` (or null) gives the rising rules their own sequence. Replaced the two alternating colours `a`/`b` on 2026-11-15; palettes still name two and set `bands` to them |
 | `blend`, `riseOnTop` | Multiply the bands; swap the layer order |
 
 `SLIDERS` describes each numeric control and its limits. `limit()` clamps to them, so random and Explore states stay inside the slider ranges.
@@ -73,3 +74,11 @@ Paint order, for each direction (falling on top by default): bands at `alpha`, t
 
 Tested by hand in headless Chromium: column clicks, Undo, Explore, Randomise, wheel zoom, drag, synthetic pinch, zoom bar, phone-width layout.
 Not tested: a real iPad or phone; Save inside the Claude viewer.
+
+## Bargello presets (2026-11-15)
+
+Two presets after Bargello needlework the owner sent, matched at the level of the shapes and the colour order, not the stitches:
+- **Flame**: falling and rising columns in turn, low tension so the tips are sharp, no rules, opaque bands through a nine-colour cycle (rose, cream, sage greens, cream, blush).
+- **Sawtooth**: three crossed columns with the rising rules on top. The rising sequence is six colours (teals, grey, black) and then gaps, as long as the run, so each column carries one diagonal that restarts at the foot of the next; the falling rules' peach-to-rust gradient shows through the gaps.
+
+The band editor sits under Colour: a swatch per band, + Colour / + Gap, × on hover or focus to remove, a hatched gap fills when clicked. It only rebuilds when the sequence changes shape, so a colour picker stays open while it edits. The smoke test scrolls the curve editors into view, since the presets now wrap to a second row.
