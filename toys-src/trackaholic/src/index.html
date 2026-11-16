@@ -292,6 +292,7 @@ import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
+import {mergeVertices} from 'three/addons/utils/BufferGeometryUtils.js';
 import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
 import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
 import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
@@ -739,6 +740,7 @@ function applyLand(id){const L=LANDS[id];if(landShown===id)return;landShown=id;
   for(const n of['stars','meteors','aurora','rays','planet'])skyU[n].value=k[n]||0;
   SUNDIR.fromArray(L.sunDir).normalize();scene.fog.color.set(L.fog[0]);scene.fog.density=L.fog[1];
   hemi.color.set(L.hemi[0]);hemi.groundColor.set(L.hemi[1]);hemi.intensity=L.hemi[2];sun.color.set(L.sun[0]);sun.intensity=L.sun[1];
+  smoke.material.color.set(id==='desert'?0xe2c49a:0xd9cfe8);smoke.material.opacity=id==='desert'?0.42:0.35;
   renderer.toneMappingExposure=L.exposure}
 let composer=null;
 if(!IS_TOUCH&&!QS.has('nobloom')){composer=new EffectComposer(renderer);composer.addPass(new RenderPass(scene,camera));
@@ -768,6 +770,94 @@ const colorize=(g,c)=>{const col=new THREE.Color(c),a=[];for(let i=0;i<g.attribu
 
 let world=null;const anim={islands:[],falls:null,motes:null,arches:[]};
 const disposeTree=o=>o.traverse(n=>{if(n.isInstancedMesh2&&!n._parentLOD){n.disposeBVH&&n.disposeBVH();n.matricesTexture&&n.matricesTexture.dispose();n.colorsTexture&&n.colorsTexture.dispose()}if(n.geometry)n.geometry.dispose();if(n.material)(Array.isArray(n.material)?n.material:[n.material]).forEach(m=>{for(const k of['map','emissiveMap'])if(m[k]&&![GROUND_TEX,ROAD_TEX,ROAD_EM,SPRITE].includes(m[k]))m[k].dispose();m.dispose()})});
+/* ----- desert sandstone, after mrdoob's Codevember 2026/15 (Mirage): wind ripples in the sand, rock in beds of
+   uneven hardness cut by joints, mesas of cliffs and scree. Everything is made here, so nothing is downloaded. ----- */
+// A tiling noise texture: four channels of periodic value noise, coarse (x) to fine (z), and a middling one (w).
+const SAND_NOISE=(()=>{const N=256,data=new Uint8Array(N*N*4),R=mulberry32(1515);
+  const chan=(base,oct,ch)=>{const lat=[];for(let o=0;o<oct;o++){const f=base<<o,a=new Float32Array(f*f);for(let i=0;i<f*f;i++)a[i]=R();lat.push([f,a])}
+    for(let y=0;y<N;y++)for(let x=0;x<N;x++){let v=0,amp=1,tot=0;
+      for(const[f,a]of lat){const fx=x*f/N,fy=y*f/N,ix=Math.floor(fx),iy=Math.floor(fy),tx=fx-ix,ty=fy-iy,u=tx*tx*(3-2*tx),w=ty*ty*(3-2*ty),x0=ix%f,y0=iy%f,x1=(ix+1)%f,y1=(iy+1)%f;
+        v+=amp*(a[y0*f+x0]*(1-u)*(1-w)+a[y0*f+x1]*u*(1-w)+a[y1*f+x0]*(1-u)*w+a[y1*f+x1]*u*w);tot+=amp;amp*=0.5}
+      data[(y*N+x)*4+ch]=Math.round(clamp(0.5+(v/tot-0.5)*1.8,0,1)*255)}};
+  chan(4,4,0);chan(8,3,1);chan(64,2,2);chan(16,4,3);
+  const t=new THREE.DataTexture(data,N,N);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.magFilter=THREE.LinearFilter;t.minFilter=THREE.LinearMipmapLinearFilter;
+  t.generateMipmaps=true;t.anisotropy=renderer.capabilities.getMaxAnisotropy();t.needsUpdate=true;return t})();
+// mode 'sand': the desert floor, which turns to bedded rock where it is steep (the beds follow the height of the
+// ground); 'rock': boulders and mesas, whose geometry carries its beds in a `sbed` attribute (hardness, height).
+function sandstone(mat,mode){const sand=mode==='sand';mat.customProgramCacheKey=()=>'sandstone-'+mode;
+  mat.onBeforeCompile=sh=>{sh.uniforms.sNoise={value:SAND_NOISE};
+    sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vSP;varying vec3 vSN;'+(sand?'':'attribute vec2 sbed;varying vec2 vBed;'))
+      .replace('#include <begin_vertex>','#include <begin_vertex>\n{mat4 sm=modelMatrix;\n#ifdef USE_INSTANCING\nsm=modelMatrix*instanceMatrix;\n#endif\nvSP=(sm*vec4(transformed,1.)).xyz;vSN=normalize(mat3(sm)*objectNormal);'+(sand?'':'vBed=sbed;')+'}');
+    sh.fragmentShader=(sand?'#define SAND\n':'')+sh.fragmentShader.replace('#include <common>',`#include <common>
+uniform sampler2D sNoise;varying vec3 vSP;varying vec3 vSN;
+#ifndef SAND
+varying vec2 vBed;
+#endif
+vec4 sTex(vec2 p){return texture2D(sNoise,p);}`)
+    .replace('#include <color_fragment>',`#include <color_fragment>
+vec3 sP=vSP,sNw=normalize(vSN);float sSlope=1.-abs(sNw.y);
+vec4 sBig=sTex(sP.xz/700.),sMid=sTex(sP.xz/90.);
+#ifdef SAND
+float sRock=smoothstep(.15,.3,sSlope+(sMid.w-.5)*.14);
+float sBY=sP.y+(sBig.x-.5)*12.+(sMid.y-.5)*2.5;
+float sHardAt0=sTex(vec2(sBY/38.,.5)).w,sHard=smoothstep(.36,.64,sHardAt0),sHardUp=smoothstep(.36,.64,sTex(vec2((sBY+.25)/38.,.5)).w);
+#else
+float sRock=1.,sBY=vBed.y,sHard=vBed.x,sHardUp=sHard;
+#endif
+// beds: soft ones dark and red, hard ones pale; fine laminae within them; desert varnish streaking down steep faces
+vec3 sTone=mix(vec3(.8,.64,.55),vec3(1.1,1.03,.93),sHard)*(.92+.16*sTex(vec2(sBY*.21,.71)).z);
+float sSteep=smoothstep(.45,.85,sSlope),sAlong=(sP.x*sNw.z-sP.z*sNw.x);
+sTone*=1.-.45*sSteep*max(0.,sTex(vec2(sAlong*.17,sP.y*.003)).w-.45)*smoothstep(.3,.6,sTex(vec2(sAlong*.03,.2)).x);
+vec3 sW=pow(abs(sNw),vec3(4.));sW/=sW.x+sW.y+sW.z;
+float sGrain=sTex(sP.yz*.8).z*sW.x+sTex(sP.xz*.8).z*sW.y+sTex(sP.xy*.8).z*sW.z;
+float sNear=1.-smoothstep(20.,110.,distance(cameraPosition,sP));
+// wind ripples on the open sand: a gentle windward side and a steeper lee, faded out before they could alias
+vec2 sWd=vec2(.8,.6);float sPh=dot(sP.xz,sWd)*2.1+(sBig.y-.5)*44.+(sMid.x-.5)*7.;
+float sAmp=(1.-sRock)*(1.-smoothstep(.06,.2,sSlope))*mix(.35,1.,sBig.w)*(1.-smoothstep(.5,1.4,fwidth(sPh)));
+float sRip=sin(sPh)+.3*sin(2.*sPh+1.),sDRip=cos(sPh)+.6*cos(2.*sPh+1.);
+diffuseColor.rgb*=mix(vec3(1.),sTone,sRock)*(1.+(sGrain-.5)*.32*sNear)*(1.+sRip*.045*sAmp);`)
+    .replace('#include <normal_fragment_maps>',`#include <normal_fragment_maps>
+{vec3 nW=normalize((vec4(normal,0.)*viewMatrix).xyz);
+nW-=vec3(sWd.x,0.,sWd.y)*sDRip*.16*sAmp;
+nW.y-=(sHardUp-sHard)*2.4*sRock*sSteep;
+normal=normalize((viewMatrix*vec4(normalize(nW),0.)).xyz);}`)};return mat}
+// rock beds from `lo` to `hi`, each with its own thickness and hardness
+function bedsFor(R,lo,hi,mean){const b=[];let y=lo;while(y<hi){const t=mean*(0.4+R()*1.2);b.push({y0:y,y1:y+t,hard:R()});y+=t}return b}
+const bedAt=(b,y)=>{for(const e of b)if(y<e.y1)return e;return b[b.length-1]};
+// a boulder: a lumpy ball flattened under a caprock and buried at the foot, soft beds weathered back between hard
+// ones, and cut flat by a few joints; `segs` sets the detail, and the same seed gives the same rock at any detail
+function sandBoulder(seed,segs){const R=mulberry32(seed),nz=makeNoise(seed),n3=(x,y,z)=>(nz(x+z*.71+5,y-z*1.13,2)+nz(y+31.7,z-x*.6,2))*0.5;
+  let g=new THREE.SphereGeometry(1,segs,Math.round(segs*0.6));g.deleteAttribute('normal');g.deleteAttribute('uv');g=mergeVertices(g);
+  const p=g.attributes.position,beds=bedsFor(R,-1.2,1.2,0.22+R()*0.18),top=0.3+R()*0.35,sx=0.9+R()*0.6,sz=0.75+R()*0.45,
+    joints=Array.from({length:3+(R()*3|0)},()=>{const a=R()*6.283;return{n:new THREE.Vector3(Math.cos(a),(R()-.5)*0.4,Math.sin(a)).normalize(),o:0.55+R()*0.35}}),
+    sb=new Float32Array(p.count*2),v=new THREE.Vector3();
+  for(let i=0;i<p.count;i++){v.fromBufferAttribute(p,i);v.multiplyScalar(1+0.3*n3(v.x*1.4,v.y*1.4,v.z*1.4));v.x*=sx;v.z*=sz;v.y*=0.78;
+    if(v.y>top)v.y=top+(v.y-top)*0.12;if(v.y<-0.35)v.y=-0.35+(v.y+0.35)*0.3;
+    const e=bedAt(beds,v.y),u=(v.y-e.y0)/(e.y1-e.y0),k=1-(1-e.hard)*0.3*Math.pow(Math.sin(Math.PI*u),0.5);v.x*=k;v.z*=k;
+    for(const j of joints){const s=v.dot(j.n)-j.o;if(s>0)v.addScaledVector(j.n,-s*0.92)}
+    p.setXYZ(i,v.x,v.y,v.z);sb[i*2]=e.hard;sb[i*2+1]=v.y*3+seed%17}
+  g.setAttribute('sbed',new THREE.BufferAttribute(sb,2));g.computeVertexNormals();return g}
+// a mesa or butte, H high and about R0 across at the top: going down, a hard bed stands as a cliff (undercut at its
+// foot) and a soft one weathers back into a slope of scree; the outline wanders, with buttresses and gullies
+function sandMesa(R,H,R0){const nz=makeNoise(R()*1e9|0),A=72,beds=bedsFor(R,0,H,H/(5+R()*4)).reverse(),rows=[];
+  let r=R0;rows.push([H,r]);
+  for(const e of beds){const t=e.y1-e.y0;
+    if(e.hard>0.42){rows.push([e.y1-0.08,r+0.02],[e.y1-0.3,r+0.1],[(e.y0+e.y1)/2,r+0.2],[e.y0+0.6,r+0.3],[e.y0+0.35,r-0.2],[e.y0+0.12,r-0.6]);r+=0.1}
+    else{rows.push([e.y1-0.1,r+0.35]);const n=Math.max(1,Math.round(t/2.5));for(let k=1;k<=n;k++)rows.push([e.y1-t*k/n,r+t*1.3*Math.pow(k/n,0.75)]);r+=t*1.3}}
+  rows.push([-10,r+12]);
+  const gul=Array.from({length:3+(R()*4|0)},()=>({a:R()*6.283,w:0.05+R()*0.08,d:0.1+R()*0.12})),pos=[],sb=[],idx=[];
+  const ring=rows.map(([y,rr])=>{const out=[];for(let i=0;i<A;i++){const a=i/A*6.283,ca=Math.cos(a),sa=Math.sin(a);let f=1+0.2*nz(ca*1.3+3,sa*1.3+y/60,3)+0.06*nz(ca*6,sa*6+y/9,2)+0.025*nz(ca*20+y/3,sa*20,2);
+      for(const g of gul){let d=Math.abs(a-g.a);d=Math.min(d,6.283-d);f*=1-g.d*Math.exp(-((d/g.w)*(d/g.w)))*(rr-R0+4)/(rr-R0+10)}
+      out.push(ca*rr*f,y,sa*rr*f)}return out}),bedsUp=beds.slice().reverse();
+  // each band between two rows has its own vertices, so its normals are smoothed round the mesa but not up it,
+  // and every ledge keeps a crisp edge
+  const band=(r0,r1,hard)=>{const o=pos.length/3;for(const r of[r0,r1])for(let i=0;i<A;i++){pos.push(r[i*3],r[i*3+1],r[i*3+2]);sb.push(hard,r[i*3+1])}
+    for(let i=0;i<A;i++){const a=o+i,b=o+(i+1)%A,c=a+A,d=b+A;idx.push(a,b,c,b,d,c)}};
+  for(let j=0;j<rows.length-1;j++){const ym=(rows[j][0]+rows[j+1][0])/2;band(ring[j],ring[j+1],ym<0?0.2:bedAt(bedsUp,clamp(ym,0,H-0.01)).hard)}
+  const top=pos.length/3;pos.push(0,H+0.4,0);sb.push(1,H);for(let i=0;i<A;i++){pos.push(ring[0][i*3],H,ring[0][i*3+2]);sb.push(1,H)}
+  for(let i=0;i<A;i++)idx.push(top,top+1+(i+1)%A,top+1+i);
+  const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geo.setAttribute('sbed',new THREE.Float32BufferAttribute(sb,2));
+  geo.setIndex(idx);geo.computeVertexNormals();return geo}
 function buildWorld(){
   if(world){scene.remove(world);disposeTree(world)}
   world=new THREE.Group();scene.add(world);anim.islands=[];anim.arches=[];anim.motes=null;
@@ -784,7 +874,7 @@ function buildWorld(){
   if(t.land==='moon')place(IS_TOUCH?50:70,4,170,(x,y,z,dist)=>{let rc=2.5+Math.pow(R(),2)*16;rc=Math.min(rc,dist-HALF_W-2);if(rc<2)return false;craters.push({x,z,r:rc})});
   // terrain, in chunks so off-screen parts are culled
   const C=pals(L.ground),tc=new THREE.Color();
-  const tmat=new THREE.MeshStandardMaterial({map:GROUND_TEX,vertexColors:true,roughness:0.92,metalness:0});
+  const tmat=t.land==='desert'?sandstone(new THREE.MeshStandardMaterial({vertexColors:true,roughness:0.95,metalness:0}),'sand'):new THREE.MeshStandardMaterial({map:GROUND_TEX,vertexColors:true,roughness:0.92,metalness:0});
   const CH=64;
   for(let cz=0;cz<g.NZ-1;cz+=CH)for(let cx=0;cx<g.NX-1;cx+=CH){
     const nx=Math.min(CH,g.NX-1-cx)+1,nz=Math.min(CH,g.NZ-1-cz)+1,pos=new Float32Array(nx*nz*3),col=new Float32Array(nx*nz*3),uv=new Float32Array(nx*nz*2),nor=new Float32Array(nx*nz*3);
@@ -903,13 +993,14 @@ function buildWorld(){
       sh.vertexShader='uniform float time;\n'+sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\ntransformed.y=mod(position.y+time*'+rise.toFixed(2)+',14.);transformed.x+=sin(time*2.+position.z)*.15;')}}
     const pts=new THREE.Points(geo,mat);pts.frustumCulled=false;world.add(pts);anim.motes=pts}
   // desert: saguaros, scrub and banded mesas
-  function cacti(){const P=[],cyl=(r0,r1,h,x,y,z,rz)=>{const c=new THREE.CylinderGeometry(r0,r1,h,10);if(rz)c.rotateZ(rz);c.translate(x,y,z);P.push(colorize(c,0xffffff))},
-      cap=(r0,x,y,z)=>{const c=new THREE.SphereGeometry(r0,10,6,0,Math.PI*2,0,Math.PI/2);c.translate(x,y,z);P.push(colorize(c,0xffffff))};
+  function cacti(){const cactus=seg=>{const P=[],rib=c=>{if(seg<12)return;const p=c.attributes.position;for(let i=0;i<p.count;i++){const x=p.getX(i),z=p.getZ(i),k=1+0.07*Math.pow(Math.abs(Math.cos(Math.atan2(z,x)*6)),0.6);p.setX(i,x*k);p.setZ(i,z*k)}},
+      cyl=(r0,r1,h,x,y,z,rz)=>{const c=new THREE.CylinderGeometry(r0,r1,h,seg,seg<12?1:4);rib(c);if(rz)c.rotateZ(rz);c.translate(x,y,z);P.push(colorize(c,0xffffff))},
+      cap=(r0,x,y,z)=>{const c=new THREE.SphereGeometry(r0,seg,Math.max(3,seg/4|0),0,Math.PI*2,0,Math.PI/2);rib(c);c.translate(x,y,z);P.push(colorize(c,0xffffff))};
     cyl(0.42,0.5,6,0,3,0);cap(0.42,0,6,0);
     cyl(0.28,0.28,1.3,0.75,2.6,0,Math.PI/2);cyl(0.28,0.28,2.2,1.4,3.6,0);cap(0.28,1.4,4.7,0);
     cyl(0.26,0.26,1.1,-0.65,3.4,0,Math.PI/2);cyl(0.26,0.26,1.5,-1.2,4.1,0);cap(0.26,-1.2,4.85,0);
-    const geo=mergeGeos(P);geo.computeVertexNormals();
-    scatter(geo,new THREE.MeshStandardMaterial({vertexColors:true,roughness:0.8}),many(240,420),5,150,[0x3f7a4a,0x4f8a52,0x5d9a5a,0x376a44],[0.6,1.3],{sink:0.1,tall:[0.8,1.3]})}
+    const geo=mergeGeos(P);geo.computeVertexNormals();return geo};
+    scatter(cactus(48),new THREE.MeshStandardMaterial({vertexColors:true,roughness:0.8}),many(240,420),5,150,[0x4c7650,0x5a8356,0x66885a,0x426a48],[0.6,1.3],{sink:0.1,tall:[0.8,1.3],lod:RICH?[[cactus(10),45],[cactus(6),140]]:undefined})}
   function scrub(){const geo=new THREE.IcosahedronGeometry(1,1);geo.scale(1,0.55,1);
     scatter(geo,new THREE.MeshStandardMaterial({color:0xffffff,roughness:0.95,flatShading:true}),many(360,640),3,120,[0x8a8a4a,0xa08a50,0x6f7a40,0xb09a68],[0.4,1.1],{sink:0.15})}
   function mesas(){around(14,80,[0.4,1.2],(x,z,u)=>{const tiers=u<0.5?1:2,grp=new THREE.Group(),band=pals([0xb8693e,0xc98a58,0xa85a36,0xd8a070]);let y0=0,r0=18+u*26;
@@ -918,6 +1009,13 @@ function buildWorld(){
         geo.setAttribute('color',new THREE.Float32BufferAttribute(col,3));geo.translate(0,y0+h/2,0);
         const m=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({vertexColors:true,roughness:0.95,flatShading:true}));grp.add(m);y0+=h;r0*=0.5+R()*0.2}
       grp.position.set(x,terrainH(x,z)-4,z);grp.rotation.y=R()*6;world.add(grp)})}
+  // the desert's own rocks: sandstone boulders in six shapes, and mesas and buttes
+  function sandBoulders(nR){const mat=sandstone(new THREE.MeshStandardMaterial({color:0xffffff,roughness:0.93}),'rock'),pal=pals([0xc98a5a,0xd29a68,0xb87a50,0xdcae7c]),V=6,items=Array.from({length:V},()=>[]);
+    place(nR,5,160*SPREAD,(x,y,z)=>{const s=0.6+Math.pow(R(),1.6)*3.4,e=s,sl=Math.hypot(terrainH(x+e,z)-terrainH(x-e,z),terrainH(x,z+e)-terrainH(x,z-e))/(2*e);if(sl>0.3)return false;p3.set(x,y-(0.12+sl*0.8)*s,z);eu.set((R()-.5)*0.12,R()*6.28,(R()-.5)*0.12);qq.setFromEuler(eu);sc.set(s,s,s);m4.compose(p3,qq,sc);items[R()*V|0].push(item(pal[R()*pal.length|0]))});
+    for(let v=0;v<V;v++){const sd=t.seed*13+v*7919;inst(sandBoulder(sd,40),mat,items[v],{lod:[[sandBoulder(sd,18),45],[sandBoulder(sd,9),140]],shadow:sandBoulder(sd,9)})}}
+  function sandMesas(){const mat=sandstone(new THREE.MeshStandardMaterial({color:0xc98a5a,roughness:0.95}),'rock');
+    around(14,80,[0.4,1.2],(x,z,u)=>{const R0=u<0.3?8+R()*8:16+u*26,H=Math.min(26+R()*44,R0*2.4),m=new THREE.Mesh(sandMesa(R,H,R0),mat);
+      m.position.set(x,terrainH(x,z)-3,z);m.rotation.y=R()*6;m.castShadow=m.receiveShadow=true;world.add(m)})}
   // under the sea: swaying kelp, coral, jellyfish
   function sway(mat,amp){mat.customProgramCacheKey=()=>'sway';mat.onBeforeCompile=sh=>{sh.uniforms.time=skyU.time;
     sh.vertexShader='uniform float time;\n'+sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nfloat sw=position.y*position.y*'+amp.toFixed(4)+';\n#if defined(USE_INSTANCING) || defined(USE_INSTANCING_INDIRECT)\nfloat ph=instanceMatrix[3].x*.3+instanceMatrix[3].z*.2;\n#else\nfloat ph=0.;\n#endif\ntransformed.x+=sin(time*1.1+ph+position.y*.25)*sw;transformed.z+=cos(time*.8+ph+position.y*.2)*sw*.6;')};return mat}
@@ -974,14 +1072,14 @@ function buildWorld(){
     poles.count=heads.count=k;poles.castShadow=true;world.add(poles,heads)}
   // each landscape's own scenery
   if(t.land==='dusk'){trees(many(420,700),6,140,[0xffb3d6,0xf58fbf,0xc7a6ff,0xffd3e8,0x9fd8ff,0xfff0a8],0x4a3348);mushrooms();crystals();boulders(many(100,180),0x7a7298);islands();motes([0x7ffcff,0xffa6e0,0xfff2a6],0.5)}
-  else if(t.land==='desert'){cacti();scrub();boulders(many(140,240),0xb07a50);mesas();motes([0xffe2b0,0xf0c890,0xffffff],0.25)}
+  else if(t.land==='desert'){cacti();scrub();sandBoulders(many(140,240));sandMesas();motes([0xffe2b0,0xf0c890,0xffffff],0.25)}
   else if(t.land==='reef'){kelp();coral();boulders(many(120,200),0x6a7a88);jellies();const m=L.motes;motes(m.pal,m.size,m.rise)}
   else if(t.land==='moon'){rims();boulders(many(220,380),0x8a8a90);moonBase()}
   else if(t.land==='city'){towers();lamps();trees(many(160,260),4,40,[0x3f8a4a,0x2f7040,0x5aa060,0x4a7a3a],0x4a3a2a)}
   world.add(smoke);
   buildEnv();
 }
-function rebuildCourse(seed,land=G.land){T=makeTrack(seed);T.land=LANDS[land]?land:'dusk';T.scenery=SCENERY;T.terr=buildTerrainData();buildWorld();drawMiniBase()}
+function rebuildCourse(seed,land=G.land){T=makeTrack(seed);T.land=LANDS[land]?land:'dusk';T.scenery=SCENERY;T.terr=buildTerrainData();buildWorld();clearTrackMarks();drawMiniBase()}
 const courseIs=(seed,land)=>T&&T.seed===seed&&T.land===(land||'dusk')&&T.scenery===SCENERY;
 
 /* ----- the car model ----- */
@@ -1114,6 +1212,36 @@ const smoke=new THREE.Points(smokeG,new THREE.PointsMaterial({map:SPRITE,size:2.
 const sp=Array.from({length:SMN},()=>({l:0,x:0,y:0,z:0,vx:0,vy:0,vz:0}));let spI=0;
 function puff(x,y,z,vx,vz){const q=sp[spI=(spI+1)%SMN];q.l=0.9+Math.random()*0.6;q.x=x;q.y=y+0.2;q.z=z;q.vx=vx*0.3+(Math.random()-.5);q.vy=0.6+Math.random()*0.6;q.vz=vz*0.3+(Math.random()-.5)}
 function stepSmoke(dt){const a=smokeG.attributes.position.array;for(let k=0;k<SMN;k++){const q=sp[k];if(q.l>0){q.l-=dt;q.x+=q.vx*dt;q.y+=q.vy*dt;q.z+=q.vz*dt;q.vx*=1-dt;q.vz*=1-dt;a[k*3]=q.x;a[k*3+1]=q.y;a[k*3+2]=q.z}else a[k*3+1]=-1e4}smokeG.attributes.position.needsUpdate=true}
+
+/* ----- tyre tracks and dust in the desert sand, after Mirage's wheel tracks: a ring of stamped tread marks, one
+   instanced draw however long the race; each car's rear tyres stamp a mark every half metre while off the road ----- */
+const TRN=IS_TOUCH?1500:3000,trackMarks=(()=>{const tex=canvasTex(64,128,(g,w,h)=>{g.clearRect(0,0,w,h);
+    for(let y=0;y<h;y+=16){g.fillStyle='rgba(255,255,255,0.9)';g.beginPath();g.moveTo(6,y+2);g.lineTo(w/2,y+9);g.lineTo(w-6,y+2);g.lineTo(w-6,y+8);g.lineTo(w/2,y+15);g.lineTo(6,y+8);g.fill()}
+    const gr=g.createLinearGradient(0,0,w,0);gr.addColorStop(0,'rgba(255,255,255,0)');gr.addColorStop(0.15,'rgba(255,255,255,0.45)');gr.addColorStop(0.85,'rgba(255,255,255,0.45)');gr.addColorStop(1,'rgba(255,255,255,0)');
+    g.globalCompositeOperation='destination-over';g.fillStyle=gr;g.fillRect(0,0,w,h);
+    g.globalCompositeOperation='destination-in';const gf=g.createLinearGradient(0,0,w,0);gf.addColorStop(0,'rgba(0,0,0,0)');gf.addColorStop(0.12,'#000');gf.addColorStop(0.88,'#000');gf.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gf;g.fillRect(0,0,w,h)},true,true);
+  const geo=new THREE.PlaneGeometry(0.3,0.62);geo.rotateX(-Math.PI/2);
+  const m=new THREE.InstancedMesh(geo,new THREE.MeshStandardMaterial({color:0x7a5232,map:tex,transparent:true,opacity:0.5,depthWrite:false,roughness:1,polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-3}),TRN);
+  m.frustumCulled=false;m.renderOrder=1;m.receiveShadow=true;const z=new THREE.Matrix4().makeScale(0,0,0);for(let i=0;i<TRN;i++)m.setMatrixAt(i,z);m.visible=false;scene.add(m);return m})();
+let trI=0;const TKQ={},_tm=new THREE.Matrix4(),_tq=new THREE.Quaternion(),_tn=new THREE.Vector3(),_tf=new THREE.Vector3(),_tr=new THREE.Vector3(),_ts=new THREE.Vector3(1,1,1),_tb=new THREE.Matrix4();
+function clearTrackMarks(){const z=new THREE.Matrix4().makeScale(0,0,0);for(let i=0;i<TRN;i++)trackMarks.setMatrixAt(i,z);trackMarks.instanceMatrix.needsUpdate=true;trackMarks.visible=T&&T.land==='desert';for(const c of G.cars||[])c.marks=null}
+function sandWheels(c,st){if(!T||T.land!=='desert'||!CAR.wheels)return;const p=st.p;
+  if(camera.position.distanceToSquared(p)>160*160)return;
+  trackQuery(p.x,p.z,c.idx>=0?c.idx:-1,TKQ);if(TKQ.dist<HALF_W+0.6)return;
+  const speed=Math.hypot(st.v.x,st.v.z);if(!c.marks)c.marks=CAR.wheels.map(()=>null);
+  CAR.wheels.forEach((w,k)=>{_v1.copy(w.hp).applyQuaternion(st.q).add(p);const y=terrainH(_v1.x,_v1.z);if(_v1.y-y>CAR.radius+0.45){c.marks[k]=null;return}
+    if(speed>7&&Math.random()<Math.min(0.5,speed/60))puff(_v1.x,y+0.1,_v1.z,st.v.x*0.5,st.v.z*0.5);
+    if(w.front)return;const last=c.marks[k],gap=last?Math.hypot(_v1.x-last.x,_v1.z-last.z):0;if(last&&gap<0.5)return;
+    // a mark every half metre from the last one up to the tyre, so a fast car leaves an unbroken track
+    if(last&&gap<4)_tf.set(_v1.x-last.x,0,_v1.z-last.z).normalize();else{_tf.set(0,0,1).applyQuaternion(st.q);_tf.y=0;_tf.normalize()}
+    const n=last&&gap<4?Math.floor(gap/0.5):1,dir=_v2.copy(_tf);
+    for(let j=1;j<=n;j++){const x=last&&gap<4?last.x+dir.x*0.5*j:_v1.x,z=last&&gap<4?last.z+dir.z*0.5*j:_v1.z,e=0.5;
+      _tn.set(terrainH(x-e,z)-terrainH(x+e,z),2*e,terrainH(x,z-e)-terrainH(x,z+e)).normalize();_tf.copy(dir);
+      _tr.crossVectors(_tn,_tf).normalize();_tf.crossVectors(_tr,_tn);_tb.makeBasis(_tr,_tn,_tf);_tq.setFromRotationMatrix(_tb);
+      _tm.compose(_tr.set(x,terrainH(x,z)+0.03,z),_tq,_ts);trackMarks.setMatrixAt(trI,_tm);trI=(trI+1)%TRN;
+      if(j===n)_v1.set(x,0,z)}
+    trackMarks.instanceMatrix.needsUpdate=true;
+    c.marks[k]={x:_v1.x,z:_v1.z}})}
 
 /* ================= sound ================= */
 let ac=null,master=null,eng=null,squealG=null,windG=null,noiseBuf=null,muted=store.get('trackaholic.muted')==='1';
@@ -1429,6 +1557,7 @@ function frame(){
     if(steps>=10)acc=0;
     for(const c of G.cars)if(!c.local)remoteState(c,rdt);
     for(const c of G.cars){const st=stOf(c);poseModel(c,st,rdt);if(c.model.tag)c.model.tag.visible=camera.position.distanceTo(st.p)>9;
+      sandWheels(c,st);
       if(c.local&&c.slipMax>3&&Math.random()<0.6){const k=Math.random()*4|0;_v1.copy(CAR.wheels[k].hp).applyQuaternion(c.q).add(c.p);puff(_v1.x,_v1.y-0.4,_v1.z,c.v.x,c.v.z)}}
     stepSmoke(rdt);
     sendT+=rdt;if(sendT>0.05){sendT=0;if(G.mode==='guest'&&G.me)NET.send({t:'st',k:G.raceId,a:pack(G.me)});if(G.mode==='host')HOST.relay()}
@@ -1591,7 +1720,7 @@ const GU={lan:null,id:null,lobby:null,
 function setStatus(sel,t,err){const e=$(sel);e.textContent=t;e.classList.toggle('err',!!err)}
 
 /* ================= boot ================= */
-window.GW={recordSeen,bumpCars,G,HOST,GU,skyU,renderer,camera,get SCENERY(){return SCENERY},get T(){return T},rebuildCourse,resetCar,tiltCurve,autoGas,HALF_W,HZ,stepCar,botInput,groundH,terrainH,trackQuery,startSolo,setupRace,newCar,placeCar,CAR,accept:c=>HOST.lan.accept(c)};
+window.GW={scene,trackMarks,recordSeen,bumpCars,G,HOST,GU,skyU,renderer,camera,get SCENERY(){return SCENERY},get T(){return T},rebuildCourse,resetCar,tiltCurve,autoGas,HALF_W,HZ,stepCar,botInput,groundH,terrainH,trackQuery,startSolo,setupRace,newCar,placeCar,CAR,accept:c=>HOST.lan.accept(c)};
 window.FL=window.GW;
 resize();
 loadBear().catch(()=>{});

@@ -176,3 +176,40 @@ In a headless race of 7 bots on 4 tracks for 120 s, compared with passing switch
 - **Camera:** the chase distance ×0.72 and height ×0.7 in bear mode.
 - Tyre smoke is still puffed at the (invisible) wheels; it reads as dust kicked up by the paws.
 - Verified headless (file://): bears, cars and the host toggle, with no new errors. **Not verified:** a phone guest in bear mode, the hop over a real crest, and how the footfalls and growl sound.
+
+## Desert sandstone (2026-11-16)
+
+After mrdoob's Codevember 2026/15, Mirage (`https://mrdoob.github.io/codevember-2026/15/`): ideas re-implemented for WebGL, no code copied (its licence wasn't checked). Left out on purpose: its WebGPU meshlets, Box3D physics and the heat-shimmer mirage post-process. Only the desert changes; the other landscapes are untouched.
+
+- **`SAND_NOISE`:** a 256² tiling `DataTexture` of periodic value noise, made at startup (about 26 ms), so nothing is downloaded and file:// works. Channels: x coarse, y medium, z fine grain, w middling.
+- **`sandstone(mat, mode)`** patches a `MeshStandardMaterial` (`onBeforeCompile`, cache key `sandstone-<mode>`):
+  - `'sand'` is the desert floor. Where the ground is steep (slope over about 0.15–0.3) it becomes bedded rock, with the beds following the ground's height, warped by noise.
+  - `'rock'` is for boulders and mesas, whose geometry carries its beds in an `sbed` attribute: hardness, then height.
+  - Both get bed tones (soft beds dark and red, hard ones pale), fine laminae, desert-varnish streaks down steep faces and triplanar grain that fades by about 110 m.
+  - Open sand gets wind ripples: a two-harmonic wave across `sWd`, bent by noise, bump-mapped through the normal. They fade by `fwidth` of their phase, so they never alias into shimmer.
+  - The world position and normal come from the vertex shader, through `instanceMatrix` when instanced. This works with both `InstancedMesh2` and plain `InstancedMesh`.
+- **`sandBoulder(seed, segs)`:**
+  - a lumpy sphere (merged vertices), flattened under a caprock and buried at the foot;
+  - soft beds are weathered back between hard ones, and a few joint planes cut it flat;
+  - the same seed gives the same rock at 40, 18 and 9 segments (LODs at 45 and 140 m).
+  - `sandBoulders()` uses six shapes per track and skips ground steeper than 0.3, where a boulder used to hang off road cuts.
+- **`sandMesa(R, H, R0)`:**
+  - from the top down, a hard bed is a cliff, undercut at its foot, and a soft bed is a scree slope;
+  - the outline wanders with height, and it has 3–6 gullies;
+  - each band between rows has its own vertices, so normals are smoothed round the mesa but not up it, and every ledge keeps a crisp edge;
+  - buttes are capped at 2.4× their top radius in height.
+- **Cacti** have 12 ribs, 48 segments near, with LODs of 10 and 6 segments at 45 and 140 m (rich scenery only). Their greens are dustier.
+- **Tyre tracks:** `trackMarks` is one `InstancedMesh` of `TRN` (3000, or 1500 on touch) tread stamps in a ring.
+  - `sandWheels(c, st)` runs per car per frame from the render loop: desert only, within 160 m of the camera, and off the road (`trackQuery` distance over `HALF_W + 0.6`).
+  - The rear tyres stamp every 0.5 m, filling the gap since the last stamp up to 4 m, so tracks stay unbroken at any frame rate. Each stamp lies on the terrain's normal.
+  - `clearTrackMarks()` runs from `rebuildCourse`. Remote cars leave tracks too, from their rendered state.
+- **Dust:** in the desert, every wheel on the sand above 7 m/s puffs into the existing tyre-smoke pool. `applyLand` tints that pool sand-coloured in the desert.
+- `GW.scene` and `GW.trackMarks` were added for headless checks.
+- **Verified headless (file://):**
+  - rich and light scenery;
+  - fixed-viewpoint renders of the sand, boulders and mesas;
+  - an auto race pushed off the road (`ai.lane = 9`), giving continuous tracks and dust;
+  - dusk unchanged;
+  - `test/gameplay.mjs` identical before and after (it already differed from the 2026-10-30 baseline before this change);
+  - a desert course builds in about the same time as dusk.
+- **Not verified:** frame rate on a phone, and how the ripples look in motion on a real GPU.
