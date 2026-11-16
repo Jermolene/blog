@@ -82,3 +82,24 @@ Two presets after Bargello needlework the owner sent, matched at the level of th
 - **Sawtooth**: three crossed columns with the rising rules on top. The rising sequence is six colours (teals, grey, black) and then gaps, as long as the run, so each column carries one diagonal that restarts at the foot of the next; the falling rules' peach-to-rust gradient shows through the gaps.
 
 The band editor sits under Colour: a swatch per band, + Colour / + Gap, × on hover or focus to remove, a hatched gap fills when clicked. It only rebuilds when the sequence changes shape, so a colour picker stays open while it edits. The smoke test scrolls the curve editors into view, since the presets now wrap to a second row.
+
+## Moving between states (2026-11-16)
+
+The main view moves smoothly, over 650 ms with an eased curve (`TWEEN_MS`, `ease`), whenever the state changes as a whole or by a click: presets, palettes, rhythms, Randomise, Reset, Undo, picking an Explore neighbour, a column click, checkboxes, and band and curve buttons. Anything that calls `changed()` without `skipNeighbours` moves this way. Slider drags, colour pickers and curve-point drags (`changed(true)`) still show at once.
+
+- `S` is always the real state; controls, Explore and export read only `S`. `shown` is what the main view shows: a state, or a spec `{a, b, e}`, the way from spec a to b, eased `e` of the way.
+- `tweenTo()` starts a move from `shown`, so a change made mid-move carries on from what's on screen. Chains of interruptions deeper than three are cut to their latest target. A change that leaves the state as it is starts no move.
+- Every value is read through the spec (`mixNum`, `mixRgb`, `mixBool`, `bandOf`), and `flatten()` turns it into a drawable `D`:
+  - Numbers and colours are mixed. `blend` and `riseOnTop` switch half way.
+  - The spine's width is scaled by its presence.
+  - The rule count becomes fractional. The extra rule sits at the end and grows from zero weight.
+  - Each column has a width presence, so columns that come or go narrow to nothing and the rest close up. It also has a presence for its falling layer and one for its rising layer, which scale that layer's rise, rule weight and band width. A falling column turns rising by flattening and lifting again.
+  - The weight and spacing curves are mixed as functions (`curveFn` cached per point list), so different numbers of points don't matter.
+  - Band colours are mixed rule by rule, with a gap fading out.
+- `paintFlat()` draws `D`. It fills each rule's bands as one path in its own colour and opacity, and each column's rules on their own, without the zoomed-view culling. Its last frame differs from `paint(S)` by under 0.6% RMSE, so the hand-over at the end doesn't show.
+- **Verified headless,** with a frozen clock to film fixed points of a move:
+  - Mixed to Feather (nine columns to two);
+  - Feather to Flame (paper colour, band sequences, column types);
+  - a column click (rising to falling);
+  - the smoke test passes.
+- **Not verified:** how smooth it is on an iPad with many rules and columns.
