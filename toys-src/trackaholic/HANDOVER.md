@@ -213,3 +213,32 @@ After mrdoob's Codevember 2026/15, Mirage (`https://mrdoob.github.io/codevember-
   - `test/gameplay.mjs` identical before and after (it already differed from the 2026-10-30 baseline before this change);
   - a desert course builds in about the same time as dusk.
 - **Not verified:** frame rate on a phone, and how the ripples look in motion on a real GPU.
+
+## The moon and the dusk valley get the same treatment (2026-11-16)
+
+- **`sandstone(mat, mode, f)`:**
+  - The modes are now `'ground'` and `'rock'`.
+  - `f` holds the features: `ripples`, `beds` (false for no bedding), `bumps` (0..1), `grain` (0..1), and `soft` and `hard` (bed tones, as multipliers of the material's colour).
+  - These become `#define`s, and the program cache key includes `f`.
+  - `bumps` is lumpy ground from the gradients of two noise scales, about 5 m (channel x) and about 1 m (channel y), sampled one texel apart. An early version sampled too far apart and was ten times too steep, so the normals flipped into black-and-white blotches.
+- **Per-landscape settings in `LANDS`:**
+  - `floor` gives the terrain's `sandstone` flags. A landscape without one keeps `GROUND_TEX`, as the reef and the city do.
+  - `rock` gives the bed tones for that landscape's rocks.
+  - `marks` gives the tyre tracks' `color` and `opacity`, and the `dust` colour, if any.
+  - `sandWheels` runs wherever `marks` is set. `applyLand` tints the smoke pool with `marks.dust`.
+- **Moon:**
+  - The ground is regolith (no beds, bumps 1, grain 0.5).
+  - Boulders are `sandBoulder(…, {angular: 1})`: no beds or caprock, and 7–10 joints at steeper angles, so they come out faceted.
+  - Tracks are dark (0x26262a, 0.6), with grey dust.
+- **Dusk valley:**
+  - The meadow has gentle bumps and faint grain, and bedded purple rock on steep slopes.
+  - Boulders are bedded, in purples.
+  - Each floating island's underside is now `islandRock(R, s)`. It's an overturned cone, so t=0 is its top, torn into lobes, with soft beds weathered back. It blends back to a plain cone at the top so nothing pokes through the grass.
+  - Tracks are faint (0x1c3a3a, 0.32), with no dust.
+- The old `boulders()` helper is now used only by the reef.
+- **Verified headless:**
+  - fixed views of the regolith, the moon rocks, the meadow and the islands;
+  - tracks on the moon and the dusk meadow, after moving the car off the road;
+  - the reef, the city and light scenery unchanged or working;
+  - `test/gameplay.mjs` identical;
+  - course build times unchanged (dusk about 265 ms, desert about 250–325 ms).
