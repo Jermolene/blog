@@ -726,7 +726,8 @@ const LANDS={
   reef:{name:'Under the sea',sky:{zen:[.55,.95,1],mid:[.06,.42,.5],hor:[.02,.2,.3],low:[.01,.06,.12],sunCol:[.5,.9,1],rays:1},sunDir:[-0.25,0.9,-0.35],
     fog:[0x0b5068,0.0065],hemi:[0x8ff0ff,0x1a4a50,0.95],sun:[0xb8f4ff,2.1],exposure:0.78,
     ground:[0xcbbf96,0x8fae96,0x4f9a86,0xe6dcb6,0x5e7088,0x6a7a80],water:null,
-    skirt:0x4a6a70,road:0xb8c8d0,arches:[0x5ff3ff,0xff8ad0,0xfff07a,0x9dff8a],motes:{pal:[0xd8fbff,0xb0f0ff,0xffffff],size:0.35,rise:1.6}},
+    skirt:0x4a6a70,road:0xb8c8d0,arches:[0x5ff3ff,0xff8ad0,0xfff07a,0x9dff8a],motes:{pal:[0xd8fbff,0xb0f0ff,0xffffff],size:0.35,rise:1.6},
+    floor:{ripples:1,grain:0.3,soft:[.72,.8,.86],hard:[1.08,1.1,1.06]},rock:{soft:[.78,.82,.9],hard:[1.14,1.12,1.06]},marks:{color:0x5a5a44,opacity:0.42,dust:0xc6dccc}},
   moon:{name:'On the moon',sky:{zen:[0,0,.004],mid:[.003,.003,.01],hor:[.012,.012,.022],low:[.01,.01,.012],sunCol:[1,1,.95],stars:1.4,meteors:1.2,planet:1},sunDir:[-0.7,0.3,-0.6],
     fog:[0x050508,0.0008],hemi:[0x9aa0b0,0x202024,0.22],sun:[0xffffff,2.5],exposure:0.7,
     ground:[0x6a6a6e,0x5a5a60,0x8a8a8e,0x404046,0x4c4c52,0x55555a],water:null,
@@ -735,7 +736,8 @@ const LANDS={
   city:{name:'City at night',sky:{zen:[.006,.008,.03],mid:[.05,.05,.14],hor:[.55,.3,.2],low:[.06,.04,.08],sunCol:[.55,.6,.8],stars:.35,meteors:.8},sunDir:[0.5,0.38,-0.7],
     fog:[0x2a2440,0.0024],hemi:[0x8a90c8,0x2a2030,0.55],sun:[0xb8c8ff,1.3],exposure:0.8,
     ground:[0x2f5a40,0x3d5a4a,0x4f6a3a,0x8a8070,0x55555e,0x3a3a44],water:{color:0x0c1428,roughness:0.04,metalness:0.9,opacity:0.95},
-    skirt:0x3a3a44,road:0xb4b4c0,arches:[0xff5fc8,0x5ff3ff,0xffd27a,0xff8a3c]}};
+    skirt:0x3a3a44,road:0xb4b4c0,arches:[0xff5fc8,0x5ff3ff,0xffd27a,0xff8a3c],
+    floor:{bumps:0.6,grain:0.3,soft:[.82,.82,.86],hard:[1.12,1.12,1.14]},marks:{color:0x14261a,opacity:0.34}}};
 const LAND_IDS=Object.keys(LANDS);
 let landShown=null;
 function applyLand(id){const L=LANDS[id];if(landShown===id)return;landShown=id;
@@ -990,11 +992,6 @@ function buildWorld(){
     const pal=pals([0x7fe8ff,0xd08bff,0xff8fd0,0x8affd6]),items=[];
     place(nC,4,90*SPREAD,(x,y,z)=>{const s=0.7+R()*1.5;p3.set(x,y-0.3,z);eu.set(0,R()*6.28,0);qq.setFromEuler(eu);sc.set(s,s*(0.8+R()*0.6),s);m4.compose(p3,qq,sc);items.push(item(pal[R()*4|0]))});
     inst(cg,glowByInstance(new THREE.MeshPhysicalMaterial({color:0x403a5a,roughness:0.06,metalness:0.3,clearcoat:1,emissive:0xffffff,emissiveIntensity:0.75,flatShading:true})),items,{lod:[[lo,90]],shadow:lo})}
-  // boulders
-  function boulders(nR,color){const rock=(d)=>{const g=new THREE.DodecahedronGeometry(1.2,d);const p=g.attributes.position;for(let i=0;i<p.count;i++)p.setY(i,p.getY(i)*0.6);g.computeVertexNormals();return g};
-    const items=[];
-    place(nR,5,160*SPREAD,(x,y,z)=>{const s=0.5+R()*2.2;p3.set(x,y-0.2*s,z);eu.set(R(),R()*6.28,R());qq.setFromEuler(eu);sc.set(s,s,s);m4.compose(p3,qq,sc);items.push(item())});
-    inst(rock(1),new THREE.MeshStandardMaterial({color,roughness:0.85,flatShading:true}),items,{lod:[[rock(0),80]],shadow:rock(0)})}
   // big things around the course, well away from the road: floating islands, mesas, a moon base
   const b=t.bounds,cx=(b.minX+b.maxX)/2,cz=(b.minZ+b.maxZ)/2,rad=Math.max(b.maxX-b.minX,b.maxZ-b.minZ)/2;
   function around(n,clear,spread,fn){for(let k=0;k<n;k++){const a=k/n*Math.PI*2+R()*0.4,r=rad*(spread[0]+R()*spread[1]),x=cx+Math.cos(a)*r,z=cz+Math.sin(a)*r,s=R();
@@ -1107,7 +1104,7 @@ function buildWorld(){
   // each landscape's own scenery
   if(t.land==='dusk'){trees(many(420,700),6,140,[0xffb3d6,0xf58fbf,0xc7a6ff,0xffd3e8,0x9fd8ff,0xfff0a8],0x4a3348);mushrooms();crystals();sandBoulders(many(100,180),[0x7a7298,0x857aa6,0x6e6890,0x8f86b0],L.rock);islands();motes([0x7ffcff,0xffa6e0,0xfff2a6],0.5)}
   else if(t.land==='desert'){cacti();scrub();sandBoulders(many(140,240));sandMesas();motes([0xffe2b0,0xf0c890,0xffffff],0.25)}
-  else if(t.land==='reef'){kelp();coral();boulders(many(120,200),0x6a7a88);jellies();const m=L.motes;motes(m.pal,m.size,m.rise)}
+  else if(t.land==='reef'){kelp();coral();sandBoulders(many(120,200),[0x6a7a88,0x7a8a90,0x5e7080,0x84948a],L.rock);jellies();const m=L.motes;motes(m.pal,m.size,m.rise)}
   else if(t.land==='moon'){rims();sandBoulders(many(220,380),[0x8a8a90,0x7c7c82,0x96969a,0x6e6e74],{beds:false,grain:0.55},{angular:1});moonBase()}
   else if(t.land==='city'){towers();lamps();trees(many(160,260),4,40,[0x3f8a4a,0x2f7040,0x5aa060,0x4a7a3a],0x4a3a2a)}
   world.add(smoke);

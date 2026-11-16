@@ -235,7 +235,7 @@ After mrdoob's Codevember 2026/15, Mirage (`https://mrdoob.github.io/codevember-
   - Boulders are bedded, in purples.
   - Each floating island's underside is now `islandRock(R, s)`. It's an overturned cone, so t=0 is its top, torn into lobes, with soft beds weathered back. It blends back to a plain cone at the top so nothing pokes through the grass.
   - Tracks are faint (0x1c3a3a, 0.32), with no dust.
-- The old `boulders()` helper is now used only by the reef.
+- The old `boulders()` helper was removed on 2026-11-16, once the reef had sandstone boulders too.
 - **Verified headless:**
   - fixed views of the regolith, the moon rocks, the meadow and the islands;
   - tracks on the moon and the dusk meadow, after moving the car off the road;
@@ -255,3 +255,10 @@ After mrdoob's Codevember 2026/15, Mirage (`https://mrdoob.github.io/codevember-
 - Planted toes measure about 0.35 m above `terrainH`, because the bear rides at the invisible car's height. Ankles measure about 0.5 m; the first version used them with a 0.6 m cut-off and lost most prints.
 - At a sprint the gait covers about 9 m per stride at around 90 km/h, so each paw prints about every 9 m: one print per 2 m or so in all, in gallop pairs. Slower gaits print closer together.
 - **Verified headless:** bears off the road in the desert and on the moon leave paired prints and no tyre tracks, and cars still leave tyre tracks.
+
+## The reef and the city too (2026-11-16)
+
+All five landscapes now use the sandstone shader for their ground.
+- **Reef:** rippled sand on the sea floor (grain 0.3), with blue-grey bed tones on steep ground. Boulders are `sandBoulders` in blue-greys, replacing the old dodecahedra; `boulders()` is gone. Tracks are 0x5a5a44 at 0.42, and the silt they stir up is 0xc6dccc.
+- **City:** the parks' grass has bumps 0.6 and grain 0.3, so it reads at night; embankments get grey bed tones. Tracks are faint (0x14261a, 0.34), with no dust. No rocks were added.
+- **Verified headless:** fixed views, tracks on both, and `test/gameplay.mjs` identical.
