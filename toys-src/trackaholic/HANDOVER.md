@@ -242,3 +242,16 @@ After mrdoob's Codevember 2026/15, Mirage (`https://mrdoob.github.io/codevember-
   - the reef, the city and light scenery unchanged or working;
   - `test/gameplay.mjs` identical;
   - course build times unchanged (dusk about 265 ms, desert about 250–325 ms).
+
+## Bears leave paw prints (2026-11-16)
+
+- Bears leave paw prints instead of tyre tracks. They appear wherever the landscape has `marks` (the desert, the moon and the dusk valley), off the road.
+- **`pawMarks`:** its own instanced ring of `PWN` (1200, or 600 on touch) stamps, 0.34 m across: a pad and four toes, drawn on a canvas. It copies `trackMarks`' material, and `clearTrackMarks()` clears and tints both. The shared placement is `stampMark(mesh, i, x, z, dir)`, which lays a stamp on the terrain's normal.
+- **Detection:** `makeBearModel()` finds the four toe bones (`Rig{LF,RF,LB,RB}LegDigit11…`) as `M.paws`. `sandWheels()` hands bears to `bearPrints()`.
+  - A print is pressed where a toe's height above the ground reaches a low point: it has stopped falling and started rising.
+  - That low point must be within 0.12 m of a floor that tracks the lowest the toe has lately been. The floor creeps up 4 mm a frame, so slopes and hops don't strand it.
+  - A low point can't be missed between frames, which a contact threshold was at headless frame rates.
+  - The print is set 6 cm behind the toe bone, along the bear's heading. Prints closer than 0.25 m to that paw's last one are skipped. On dusty landscapes each print puffs dust.
+- Planted toes measure about 0.35 m above `terrainH`, because the bear rides at the invisible car's height. Ankles measure about 0.5 m; the first version used them with a 0.6 m cut-off and lost most prints.
+- At a sprint the gait covers about 9 m per stride at around 90 km/h, so each paw prints about every 9 m: one print per 2 m or so in all, in gallop pairs. Slower gaits print closer together.
+- **Verified headless:** bears off the road in the desert and on the moon leave paired prints and no tyre tracks, and cars still leave tyre tracks.

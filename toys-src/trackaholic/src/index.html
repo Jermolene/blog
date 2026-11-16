@@ -1206,7 +1206,8 @@ function makeBearModel(color,name,showName){
   let tag=null;
   if(showName){const tex=canvasTex(256,64,(g,w,h)=>{g.font='700 34px "Chakra Petch", sans-serif';g.textAlign='center';g.textBaseline='middle';g.lineWidth=6;g.strokeStyle='rgba(20,15,46,.85)';g.strokeText(name,w/2,h/2);g.fillStyle='#fff';g.fillText(name,w/2,h/2)},true,false);
     tag=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,depthTest:false,transparent:true,sizeAttenuation:false}));tag.scale.set(0.16,0.04,1);tag.position.y=1.9;tag.renderOrder=5;root.add(tag)}
-  return{bear:true,root,body,mixer,actions,cur:null,busy:false,hop:null,air:0,airDone:false,lastV:null,cool:0,step:0,y0:body.position.y,tag,blob,wheels:[],brake:null};
+  return{bear:true,root,body,mixer,actions,cur:null,busy:false,hop:null,air:0,airDone:false,lastV:null,cool:0,step:0,y0:body.position.y,tag,blob,wheels:[],brake:null,
+    paws:['LF','RF','LB','RB'].map(k=>{let o=null;body.traverse(b=>{if(!o&&new RegExp('^Rig'+k+'LegDigit11').test(b.name))o=b});return o&&{o,min:null,last:null}}).filter(Boolean)};
 }
 function bearPlay(M,name,{loop=true,fade=0.3,ts=1}={}){const a=M.actions[name];if(!a)return null;
   if(M.cur===a&&loop){a.timeScale=ts;return a}
@@ -1257,11 +1258,37 @@ const TRN=IS_TOUCH?1500:3000,trackMarks=(()=>{const tex=canvasTex(64,128,(g,w,h)
   const geo=new THREE.PlaneGeometry(0.3,0.62);geo.rotateX(-Math.PI/2);
   const m=new THREE.InstancedMesh(geo,new THREE.MeshStandardMaterial({color:0x7a5232,map:tex,transparent:true,opacity:0.5,depthWrite:false,roughness:1,polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-3}),TRN);
   m.frustumCulled=false;m.renderOrder=1;m.receiveShadow=true;const z=new THREE.Matrix4().makeScale(0,0,0);for(let i=0;i<TRN;i++)m.setMatrixAt(i,z);m.visible=false;scene.add(m);return m})();
+// paw prints for the bears: a pad and four toes, pressed into the sand
+const PWN=IS_TOUCH?600:1200,pawMarks=(()=>{const tex=canvasTex(64,64,(g,w,h)=>{g.clearRect(0,0,w,h);g.fillStyle='rgba(255,255,255,0.95)';
+    g.beginPath();g.ellipse(32,42,15,13,0,0,Math.PI*2);g.fill();
+    for(const[x,y,r]of[[13,22,6],[25,13,6.5],[39,13,6.5],[51,22,6]]){g.beginPath();g.ellipse(x,y,r,r*1.2,(x-32)/60,0,Math.PI*2);g.fill()}},true,false);
+  const geo=new THREE.PlaneGeometry(0.34,0.34);geo.rotateX(-Math.PI/2);
+  const m=new THREE.InstancedMesh(geo,trackMarks.material.clone(),PWN);m.material.map=tex;
+  m.frustumCulled=false;m.renderOrder=1;m.receiveShadow=true;const z=new THREE.Matrix4().makeScale(0,0,0);for(let i=0;i<PWN;i++)m.setMatrixAt(i,z);m.visible=false;scene.add(m);return m})();
+let pwI=0;
 let trI=0;const TKQ={},_tm=new THREE.Matrix4(),_tq=new THREE.Quaternion(),_tn=new THREE.Vector3(),_tf=new THREE.Vector3(),_tr=new THREE.Vector3(),_ts=new THREE.Vector3(1,1,1),_tb=new THREE.Matrix4();
-function clearTrackMarks(){const mk=T&&LANDS[T.land].marks;if(mk){trackMarks.material.color.set(mk.color);trackMarks.material.opacity=mk.opacity}const z=new THREE.Matrix4().makeScale(0,0,0);for(let i=0;i<TRN;i++)trackMarks.setMatrixAt(i,z);trackMarks.instanceMatrix.needsUpdate=true;trackMarks.visible=!!mk;for(const c of G.cars||[])c.marks=null}
+function clearTrackMarks(){const mk=T&&LANDS[T.land].marks,z=new THREE.Matrix4().makeScale(0,0,0);
+  for(const[m,n]of[[trackMarks,TRN],[pawMarks,PWN]]){if(mk){m.material.color.set(mk.color);m.material.opacity=mk.opacity}for(let i=0;i<n;i++)m.setMatrixAt(i,z);m.instanceMatrix.needsUpdate=true;m.visible=!!mk}
+  for(const c of G.cars||[])c.marks=null}
+// a mark lying on the terrain at (x, z), its length along `dir` (a level unit vector, left unchanged)
+function stampMark(mesh,i,x,z,dir){const e=0.5;_tn.set(terrainH(x-e,z)-terrainH(x+e,z),2*e,terrainH(x,z-e)-terrainH(x,z+e)).normalize();_tf.copy(dir);
+  _tr.crossVectors(_tn,_tf).normalize();_tf.crossVectors(_tr,_tn);_tb.makeBasis(_tr,_tn,_tf);_tq.setFromRotationMatrix(_tb);
+  _tm.compose(_tr.set(x,terrainH(x,z)+0.03,z),_tq,_ts);mesh.setMatrixAt(i,_tm);mesh.instanceMatrix.needsUpdate=true}
+// a bear presses a print where each paw bottoms out: a toe bone whose height above the ground has just stopped falling,
+// close to the lowest it has lately been (that floor creeps up slowly, so a hop or a slope doesn't strand it). A
+// low point can't fall between frames, as a moment of contact could at a low frame rate.
+const _pd=new THREE.Vector3();
+function bearPrints(c,st,mk){const M=c.model;if(!M.paws.length)return;_pd.set(0,0,1).applyQuaternion(st.q);_pd.y=0;if(_pd.lengthSq()<1e-6)return;_pd.normalize();
+  const speed=Math.hypot(st.v.x,st.v.z);
+  for(const w of M.paws){w.o.getWorldPosition(_v1);const h=_v1.y-terrainH(_v1.x,_v1.z);w.min=w.min===null?h:Math.min(h,w.min+0.004);
+    if(w.h1!==undefined&&w.h1<=w.h2&&h>w.h1&&w.h1<w.min+0.12&&w.h1<1){const x=w.x1-_pd.x*0.06,z=w.z1-_pd.z*0.06;
+      if(!w.last||Math.hypot(x-w.last.x,z-w.last.z)>0.25){stampMark(pawMarks,pwI,x,z,_pd);pwI=(pwI+1)%PWN;w.last={x,z};
+        if(mk.dust&&speed>3)for(let k=0;k<2;k++)puff(x,terrainH(x,z)+0.05,z,st.v.x*0.3,st.v.z*0.3)}}
+    if(w.h1===undefined||Math.abs(h-w.h1)>1e-4){w.h2=w.h1===undefined?h:w.h1;w.h1=h;w.x1=_v1.x;w.z1=_v1.z}}}
 function sandWheels(c,st){const mk=T&&LANDS[T.land].marks;if(!mk||!CAR.wheels)return;const p=st.p;
   if(camera.position.distanceToSquared(p)>160*160)return;
   trackQuery(p.x,p.z,c.idx>=0?c.idx:-1,TKQ);if(TKQ.dist<HALF_W+0.6)return;
+  if(c.model&&c.model.bear){bearPrints(c,st,mk);return}
   const speed=Math.hypot(st.v.x,st.v.z);if(!c.marks)c.marks=CAR.wheels.map(()=>null);
   CAR.wheels.forEach((w,k)=>{_v1.copy(w.hp).applyQuaternion(st.q).add(p);const y=terrainH(_v1.x,_v1.z);if(_v1.y-y>CAR.radius+0.45){c.marks[k]=null;return}
     if(mk.dust&&speed>7&&Math.random()<Math.min(0.5,speed/60))puff(_v1.x,y+0.1,_v1.z,st.v.x*0.5,st.v.z*0.5);
@@ -1269,12 +1296,8 @@ function sandWheels(c,st){const mk=T&&LANDS[T.land].marks;if(!mk||!CAR.wheels)re
     // a mark every half metre from the last one up to the tyre, so a fast car leaves an unbroken track
     if(last&&gap<4)_tf.set(_v1.x-last.x,0,_v1.z-last.z).normalize();else{_tf.set(0,0,1).applyQuaternion(st.q);_tf.y=0;_tf.normalize()}
     const n=last&&gap<4?Math.floor(gap/0.5):1,dir=_v2.copy(_tf);
-    for(let j=1;j<=n;j++){const x=last&&gap<4?last.x+dir.x*0.5*j:_v1.x,z=last&&gap<4?last.z+dir.z*0.5*j:_v1.z,e=0.5;
-      _tn.set(terrainH(x-e,z)-terrainH(x+e,z),2*e,terrainH(x,z-e)-terrainH(x,z+e)).normalize();_tf.copy(dir);
-      _tr.crossVectors(_tn,_tf).normalize();_tf.crossVectors(_tr,_tn);_tb.makeBasis(_tr,_tn,_tf);_tq.setFromRotationMatrix(_tb);
-      _tm.compose(_tr.set(x,terrainH(x,z)+0.03,z),_tq,_ts);trackMarks.setMatrixAt(trI,_tm);trI=(trI+1)%TRN;
-      if(j===n)_v1.set(x,0,z)}
-    trackMarks.instanceMatrix.needsUpdate=true;
+    for(let j=1;j<=n;j++){const x=last&&gap<4?last.x+dir.x*0.5*j:_v1.x,z=last&&gap<4?last.z+dir.z*0.5*j:_v1.z;
+      stampMark(trackMarks,trI,x,z,dir);trI=(trI+1)%TRN;if(j===n)_v1.set(x,0,z)}
     c.marks[k]={x:_v1.x,z:_v1.z}})}
 
 /* ================= sound ================= */
@@ -1754,7 +1777,7 @@ const GU={lan:null,id:null,lobby:null,
 function setStatus(sel,t,err){const e=$(sel);e.textContent=t;e.classList.toggle('err',!!err)}
 
 /* ================= boot ================= */
-window.GW={scene,trackMarks,recordSeen,bumpCars,G,HOST,GU,skyU,renderer,camera,get SCENERY(){return SCENERY},get T(){return T},rebuildCourse,resetCar,tiltCurve,autoGas,HALF_W,HZ,stepCar,botInput,groundH,terrainH,trackQuery,startSolo,setupRace,newCar,placeCar,CAR,accept:c=>HOST.lan.accept(c)};
+window.GW={scene,trackMarks,pawMarks,recordSeen,bumpCars,G,HOST,GU,skyU,renderer,camera,get SCENERY(){return SCENERY},get T(){return T},rebuildCourse,resetCar,tiltCurve,autoGas,HALF_W,HZ,stepCar,botInput,groundH,terrainH,trackQuery,startSolo,setupRace,newCar,placeCar,CAR,accept:c=>HOST.lan.accept(c)};
 window.FL=window.GW;
 resize();
 loadBear().catch(()=>{});
