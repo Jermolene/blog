@@ -262,3 +262,23 @@ All five landscapes now use the sandstone shader for their ground.
 - **Reef:** rippled sand on the sea floor (grain 0.3), with blue-grey bed tones on steep ground. Boulders are `sandBoulders` in blue-greys, replacing the old dodecahedra; `boulders()` is gone. Tracks are 0x5a5a44 at 0.42, and the silt they stir up is 0xc6dccc.
 - **City:** the parks' grass has bumps 0.6 and grain 0.3, so it reads at night; embankments get grey bed tones. Tracks are faint (0x14261a, 0.34), with no dust. No rocks were added.
 - **Verified headless:** fixed views, tracks on both, and `test/gameplay.mjs` identical.
+
+## The reef becomes a kelp forest (2026-11-17)
+
+After Adam's Codevember 2026/17 (Kelp). Everything is still made in code; nothing is downloaded.
+- **Giant kelp** (`giantKelpGeo(seed, lvl)`): four stipes from a forked holdfast, a blade every 0.3 m up each on a golden spiral, and a canopy at the top; 18–26 m tall before scaling. Three variants; LODs at 45 m (fewer, bigger blades) and 130 m. Placed in groves: `inGrove()` is a coarse noise over the course.
+- **Sugar kelp** (`sugarKelpGeo`): broad, crinkled ribbons. **Surfgrass** (`surfgrassGeo`): tufts of bright green blades in meadows near the road.
+- All three are built by `strips()`: blades (tapered, ruffled, drooping) and tubes. Each vertex has a `kf` attribute (flutter: 0 at a blade's base to 1 at its tip, and a phase). `plants()` places variants with their LODs, with no shadows.
+- **`kelpSway(mat, {H, lean, swing, flut, glow})`** bends plants by height with the current `CUR`. The current is turned into each instance's own frame, so every plant leans the same way in the world whatever its turn. Blades flutter by `kf`. The material glows by its own colour, more higher up, so the kelp looks lit through.
+- **Pebbles and purple urchins** near the road. **Coral** is cut to about a quarter and given softer colours. Jellyfish stay.
+- **Fish:** `fishSchools()` makes 7 schools (4 on touch) of 150 (70) fish. Each school is one `InstancedMesh`, moved along a looping path in `anim.schools` and turned to face its way. In the shader, tails wag and fish mill about in the school.
+- **Light:** `shafts()` makes one mesh of slanting quads along the sun, turned about their axis to face the eye, faded near and far. The sky has a new `haze` term, a broad warm glow round the sun. The sun is lower (`sunDir` [-0.3, 0.78, -0.55]). The water is teal-green (fog 0x3c8c88), and the sand is darker and warmer.
+- **Caustics:** `CAUSTIC_GLSL` draws two drifting layers of noise ridges and fades them out before they could alias. `sandstone()` takes `caustics` (strength) for the floor and the rocks, and `causticRoad()` puts them on the road when the landscape's `floor.caustics` is set.
+- `anim.motes` is now a list. The reef has bubbles and fine golden silt.
+- `GW.anim` was added for headless checks. A frame from any viewpoint can be had with `GW.renderer.render(GW.scene, cam)` followed by `toDataURL` in the same call.
+- **Verified headless:**
+  - race and fixed views; the schools from close up;
+  - a reef course draws 0.56M triangles in 114 calls from the road, against 1.21M in 99 before (desktop, rich);
+  - build time about the same;
+  - `test/gameplay.mjs` unaffected (scenery only).
+- **Not verified:** frame rate on a phone, and how the sway, flutter and caustics look in motion on a real GPU.
