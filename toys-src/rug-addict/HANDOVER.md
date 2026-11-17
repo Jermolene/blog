@@ -134,3 +134,7 @@ These presets come from Jeremy's own rugs, matched against photos side by side. 
 - **Spelling and tone:** British spelling in the UI. Copy is plain and specific. Motif meanings are framed as traditional associations, not a code.
 - **Theming:** colours are CSS tokens with light and dark themes (`prefers-color-scheme` plus `[data-theme]` overrides). The page needs a 16 px minimum side gutter and must work at phone width.
 - **New layouts and motifs:** add the option to `OPT`, handle it in `build` and `renderGrammar`, and run the smoke test.
+
+## Crossfade between rugs (2026-11-16)
+
+A new rug is a new structure, so `commit()` and Back call `fadeFromCurrent()`. It copies the rug canvas onto an absolutely positioned `.rugfade` canvas over the new rug and fades that out over `GLIDE_MS` (650 ms) with a CSS transition. It is skipped in the room view and while exploring.

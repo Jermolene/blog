@@ -10,3 +10,7 @@ Single-file WebGL2 toy, published at jermolene.com/toys/flowing-field/ from `sta
 
 ## 2026-11-01: panel standard
 The page now follows `toys-src/PANELS.md`: the canvas lives in `#stage` with the panel docked on the right (stacked below at ≤820px), the action row (Explore 8 ways · Randomise · Reset · Download PNG) is in the panel, and the bottom toolbar holds only Pause and Nib sound. Explore neighbours are stored as deltas from the centre, mutated only in ticked groups. Where HANDOVER.md describes the floating panel, the Controls toggle or the Mutation/Done bar, this supersedes it.
+
+## Gliding between drawings (2026-11-16)
+
+`adopt()` (Randomise, Reset, an Explore pick) starts a glide over `GLIDE_MS` (650 ms, eased). Each frame, `glideStep()` gives `main.P` a mix of the old and new settings. Numbers move, whole-number ones a step at a time, and the segmented choices switch half way. The strokes are re-seeded at once, and the field carries them across.

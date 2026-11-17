@@ -33,3 +33,7 @@ Speeds (km/h) are in `prep.py` `SPEED`; urban factors 0.55/0.72 by local density
 
 ## Credits
 Contains OS data © Crown copyright and database right 2026 (OGL v3). Places: GeoNames. Coast: Natural Earth. Inspired by "All Roads Lead to Richmond" by Arterial Mapping.
+
+## Crossfade between maps (2026-11-16)
+
+Randomise and the place presets call `fadeFromCurrent()` (in `app.html`). It copies the map canvas onto a `.mapfade` canvas inside `#poster` and fades that out over `GLIDE_MS` (650 ms) while the new network draws underneath.

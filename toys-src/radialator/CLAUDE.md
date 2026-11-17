@@ -24,3 +24,7 @@ conventions shared by the shader and the SVG exporter, and known gaps.
 - Reset must still reproduce the reference: run `python3 tools/compare_reference.py`
   (baseline ~5.7% overall mismatch; regressions show up first in the 200–950px radius bands).
 - Tools need `pip install playwright numpy pillow` and a Chromium for Playwright.
+
+## Gliding between settings (2026-11-16)
+
+Randomise, a preset, Reset and Undo glide the main view to the new settings over `GLIDE_MS` (650 ms, eased), via `glideTo()`, `glideMix()` and `drawMain()`. Numbers move, whole-number sliders a step at a time. The ink and paper blend through `p._ink` and `p._paper`, which `render()` prefers to the palette. The selects switch half way. A jump made mid-glide carries on from what is on screen (`shownP`). Slider drags still show at once.

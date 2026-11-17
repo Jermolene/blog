@@ -62,3 +62,10 @@ Not tested: a real pinch on an iPad.
 - The sheet is finite, so zooming out shows paper. An endless repeat while panning would need a new definition of strand colouring, because strands computed over a finite window change as you pan.
 - There is no way to save or share a design: no URL state and no persistence. Undo history is lost on reload.
 - Random and Explore can produce sheets with many open edges. A connectivity score could bias the generator towards the closed bands of the sketches.
+
+## Gliding between designs (2026-11-16)
+
+`setG()` (Randomise, presets, Reset, Explore picks) and Undo start a glide over `GLIDE_MS` (650 ms, eased), via `startGlide()`, `glideNow()` and `drawMain()`.
+- The stripe count steps, ink, swell and phase move, and the inks and paper blend.
+- If anything in `STRUCTURE` differs (motif, size, shift, colouring mode, finish), the new sheet is painted on an offscreen canvas and fades in over the old one. Both use the moving numbers.
+- The new sheet uses the current view, so a zoom kept by Undo stays put. Edits to cells and slider drags show at once.

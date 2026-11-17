@@ -107,3 +107,12 @@ Expected: threshold mismatch about 1.65% at 2576×1884 and no page errors. The s
 4. Consider a tile-painting mode for larger hand-edited cells.
 
 The reference image is only for the regression test; it is not part of the published toy.
+
+## Gliding between settings (2026-11-16)
+
+`afterChange()` (Randomise, Reset, Undo, chips, palettes) starts a glide of the main view over `GLIDE_MS` (650 ms, eased), via `glideTo()`, `glideNow()` and `glideMix()`.
+- Numbers move, whole-number ones a step at a time, and the pan moves too.
+- The palette blends through `S._pal`, which `setUniforms()` and `drawPane()` prefer.
+- Turning a warp on or off grows it from, or shrinks it to, zero.
+- The tiling, its cell and the other chips switch half way.
+- The mesh is rebuilt each glide frame, for the main view only. The flip overlay is skipped while gliding. Slider drags still show at once.

@@ -101,3 +101,10 @@ These apply only while it lives as an artifact. Lift them if it moves to jermole
 - Wrap the fragment in a minimal doctype/head/body when loading it with `set_content`.
 - Keep viewports small (≤900×500) or SwiftShader screenshots time out.
 - `PLACES` buttons are good click targets for scripted tests. Status text is in `#stateT`, and it reads "Sharp" when refinement is complete.
+
+## Gliding between colourings (2026-11-16)
+
+The view already flies. Randomise, Reset, a palette, an Explore pick and colour fitting now also glide the colours over `GLIDE_MS` (650 ms), via `startColGlide()` and `glideCol()` inside `colOf()`.
+- The colouring shader blends two palette rows (`uPalRow2`, `uPalMix`) and the inside colour.
+- Density moves in proportion; phase and light take the short way round; relief moves; the colour map switches half way.
+- A palette blend that is interrupted is cut to whichever of its two palettes is nearer.
