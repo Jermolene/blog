@@ -773,7 +773,38 @@ function mergeGeos(list){const out=new THREE.BufferGeometry(),names=['position',
   for(const n of names)out.setAttribute(n,new THREE.Float32BufferAttribute(arrs[n],3));out.setIndex(idx);return out}
 const colorize=(g,c)=>{const col=new THREE.Color(c),a=[];for(let i=0;i<g.attributes.position.count;i++)a.push(col.r,col.g,col.b);g.setAttribute('color',new THREE.Float32BufferAttribute(a,3));if(g.attributes.uv)g.deleteAttribute('uv');return g};
 
-let world=null;const anim={islands:[],falls:null,motes:[],arches:[],schools:[]};
+// fish: each one follows its place in its school, which loops near the road, and steers round the giant kelp (anim.kelp:
+// stalks in a 10 m grid), allowing for how far each stalk leans in the current at the fish's height (as kelpSway bends it)
+const CUR=[0.8,0.6]; // the way the current flows under the sea (x, z)
+const _fq=new THREE.Quaternion(),_fr=new THREE.Quaternion(),_fe=new THREE.Euler(0,0,0,'YXZ'),_fm=new THREE.Matrix4(),_fs=new THREE.Vector3(),_fp=new THREE.Vector3(),_fc=new THREE.Vector3(),_fn=new THREE.Vector3(),_fu=new THREE.Vector3(0,1,0);
+function schoolAt(f,q,o){const a=f.w*q+f.ph;return o.set(f.ax+f.r1*Math.cos(a)+5*Math.sin(2.3*a),f.ay+1.5*Math.sin(q*0.21+f.ph),f.az+f.r2*Math.sin(a))}
+let schoolQ=0;
+function stepSchools(q){if(!anim.schools.length)return;const dt=clamp(q-schoolQ,0,0.25);schoolQ=q; // own clock: the path runs on real time, so slow frames mustn't leave the fish behind
+  for(const f of anim.schools){schoolAt(f,q,_fc);schoolAt(f,q+0.2,_fn);
+    if(_fc.distanceTo(camera.position)>260){f.stale=true;continue}
+    const svx=(_fn.x-_fc.x)/0.2,svy=(_fn.y-_fc.y)/0.2,svz=(_fn.z-_fc.z)/0.2;_fq.setFromRotationMatrix(_fm.lookAt(_fn,_fc,_fu));
+    const near=f.near;near.length=0;const cx=Math.floor(_fc.x/10),cz=Math.floor(_fc.z/10);
+    for(let i=-2;i<=2;i++)for(let j=-2;j<=2;j++){const c=anim.kelp.get((cx+i)+','+(cz+j));if(c)near.push(...c)}
+    const P=f.p,V=f.v,H=f.hd,O=f.o,n=f.fs.length;
+    for(let i=0;i<n;i++){const k3=i*3;_fp.set(O[k3],O[k3+1],O[k3+2]).applyQuaternion(_fq).add(_fc);
+      if(f.stale){P[k3]=_fp.x;P[k3+1]=_fp.y;P[k3+2]=_fp.z;V[k3]=svx;V[k3+1]=svy;V[k3+2]=svz;const l=Math.hypot(svx,svy,svz)||1;H[k3]=svx/l;H[k3+1]=svy/l;H[k3+2]=svz/l}
+      let px=P[k3],py=P[k3+1],pz=P[k3+2],vx=V[k3],vy=V[k3+1],vz=V[k3+2];
+      // towards its place, at the school's speed
+      let dx=(_fp.x-px)*1.2+svx,dy=(_fp.y-py)*1.2+svy,dz=(_fp.z-pz)*1.2+svz;const dl=Math.hypot(dx,dy,dz);if(dl>8){dx*=8/dl;dy*=8/dl;dz*=8/dl}
+      const g=Math.min(1,dt*2.5);vx+=(dx-vx)*g;vy+=(dy-vy)*g;vz+=(dz-vz)*g;
+      // round the kelp: pushed out from each stalk's axis, and turned along it the way it was already going
+      for(const k of near){const hy=(py-k.y)/k.s;if(hy<-2||hy>27)continue;const h2=Math.max(hy,0)/24,lean=h2*h2*(2.4+1.4*Math.sin(q*0.45+k.ph+hy*0.07))*k.s;
+        const ax=k.x+CUR[0]*lean,az=k.z+CUR[1]*lean;let ex=px-ax,ez=pz-az,d=Math.hypot(ex,ez);const reach=k.r+2;if(d>=reach)continue;
+        if(d<1e-3){ex=1;ez=0;d=1e-3}ex/=d;ez/=d;const push=(reach-d)/2,tx=-ez,tz=ex,sg=tx*vx+tz*vz<0?-1:1;
+        vx+=(ex*14+tx*sg*6)*push*dt;vz+=(ez*14+tz*sg*6)*push*dt;
+        if(d<k.r){px=ax+ex*k.r;pz=az+ez*k.r}}
+      px+=vx*dt;py+=vy*dt;pz+=vz*dt;P[k3]=px;P[k3+1]=py;P[k3+2]=pz;V[k3]=vx;V[k3+1]=vy;V[k3+2]=vz;
+      // facing the way it swims, turning smoothly
+      const sp=Math.hypot(vx,vy,vz);if(sp>0.1){const a=Math.min(1,dt*6);H[k3]+=(vx/sp-H[k3])*a;H[k3+1]+=(vy/sp-H[k3+1])*a;H[k3+2]+=(vz/sp-H[k3+2])*a}
+      const hl=Math.hypot(H[k3],H[k3+1],H[k3+2])||1;_fe.set(-Math.asin(clamp(H[k3+1]/hl,-0.6,0.6)),Math.atan2(H[k3],H[k3+2]),0);_fr.setFromEuler(_fe);
+      const s=f.fs[i];_fm.compose(_fp.set(px,py,pz),_fr,_fs.set(s,s,s));f.m.setMatrixAt(i,_fm)}
+    f.stale=false;f.m.instanceMatrix.needsUpdate=true}}
+let world=null;const anim={islands:[],falls:null,motes:[],arches:[],schools:[],kelp:new Map()};
 const disposeTree=o=>o.traverse(n=>{if(n.isInstancedMesh2&&!n._parentLOD){n.disposeBVH&&n.disposeBVH();n.matricesTexture&&n.matricesTexture.dispose();n.colorsTexture&&n.colorsTexture.dispose()}if(n.geometry)n.geometry.dispose();if(n.material)(Array.isArray(n.material)?n.material:[n.material]).forEach(m=>{for(const k of['map','emissiveMap'])if(m[k]&&![GROUND_TEX,ROAD_TEX,ROAD_EM,SPRITE].includes(m[k]))m[k].dispose();m.dispose()})});
 /* ----- desert sandstone, after mrdoob's Codevember 2026/15 (Mirage): wind ripples in the sand, rock in beds of
    uneven hardness cut by joints, mesas of cliffs and scree. Everything is made here, so nothing is downloaded. ----- */
@@ -900,7 +931,7 @@ function sandMesa(R,H,R0){const nz=makeNoise(R()*1e9|0),A=72,beds=bedsFor(R,0,H,
   geo.setIndex(idx);geo.computeVertexNormals();return geo}
 function buildWorld(){
   if(world){scene.remove(world);disposeTree(world)}
-  world=new THREE.Group();scene.add(world);anim.islands=[];anim.arches=[];anim.motes=[];anim.schools=[];
+  world=new THREE.Group();scene.add(world);anim.islands=[];anim.arches=[];anim.motes=[];anim.schools=[];anim.kelp=new Map();
   const t=T,g=t.terr,R=mulberry32(t.seed+5),noise=makeNoise(t.seed+71),L=LANDS[t.land];applyLand(t.land);
   // props, placed on the terrain itself
   const place=(n,dmin,dmax,fn)=>{let made=0,tries=0;while(made<n&&tries<n*30){tries++;
@@ -1063,7 +1094,6 @@ function buildWorld(){
   // kelp and surfgrass on the floor, pebbles and urchins, schools of fish, shafts of light; with some coral and jellyfish.
   // Plants are strips with a `kf` attribute (flutter: 0 at a blade's base to 1 at its tip; phase). kelpSway() bends
   // them with the current, which flows the same way in the world whatever each plant's turn, and lets light through.
-  const CUR=[0.8,0.6];
   function kelpSway(mat,o){const key='kelp'+JSON.stringify(o);mat.customProgramCacheKey=()=>key;mat.onBeforeCompile=sh=>{sh.uniforms.time=skyU.time;
     sh.vertexShader='uniform float time;\nattribute vec2 kf;\nvarying float vKH;\n'+sh.vertexShader.replace('#include <begin_vertex>',`#include <begin_vertex>
 {float ph=0.;vec2 cur=vec2(${CUR[0]},${CUR[1]});
@@ -1126,13 +1156,14 @@ vKH=clamp(hy/${o.H.toFixed(2)},0.,1.);}`);
     return S.geo()}
   const kelpNoise=makeNoise(t.seed+404),inGrove=(x,z,k=0)=>kelpNoise(x/80,z/80,2)>k;
   // plants in variants with their LODs, placed by `ok`, all leaning with the current
-  function plants(make,V,mat,n,dmin,dmax,pal,size,lods,ok){pal=pals(pal);const items=Array.from({length:V},()=>[]);
-    place(n,dmin,dmax,(x,y,z)=>{if(ok&&!ok(x,z))return false;const s=size[0]+R()*(size[1]-size[0]);p3.set(x,y-0.15,z);eu.set(0,R()*6.28,0);qq.setFromEuler(eu);sc.set(s,s,s);m4.compose(p3,qq,sc);
+  function plants(make,V,mat,n,dmin,dmax,pal,size,lods,ok,keep){pal=pals(pal);const items=Array.from({length:V},()=>[]);
+    place(n,dmin,dmax,(x,y,z)=>{if(ok&&!ok(x,z))return false;const s=size[0]+R()*(size[1]-size[0]);p3.set(x,y-0.15,z);eu.set(0,R()*6.28,0);qq.setFromEuler(eu);sc.set(s,s,s);m4.compose(p3,qq,sc);if(keep)keep(p3.x,p3.y,p3.z,s);
       items[R()*V|0].push(item(pal[R()*pal.length|0]))});
     for(let v=0;v<V;v++){const sd=t.seed*7+v*977;inst(make(sd,0),mat,items[v],{cast:false,lod:lods.map((d,k)=>[make(sd,k+1),d])})}}
   function kelpForest(){
     const kMat=kelpSway(new THREE.MeshStandardMaterial({vertexColors:true,roughness:0.55,side:THREE.DoubleSide}),{H:24,lean:2.4,swing:1.4,flut:0.2,glow:0.6});
-    plants(giantKelpGeo,3,kMat,many(90,170),4,150*SPREAD,[0xffffff,0xf4e0b0,0xe8d090,0xfff0c8],[0.75,1.3],[45,130],(x,z)=>inGrove(x,z,0.04));
+    plants(giantKelpGeo,3,kMat,many(90,170),4,150*SPREAD,[0xffffff,0xf4e0b0,0xe8d090,0xfff0c8],[0.75,1.3],[45,130],(x,z)=>inGrove(x,z,0.04),
+      (x,y,z,s)=>{const key=Math.floor(x/10)+','+Math.floor(z/10);let c=anim.kelp.get(key);if(!c)anim.kelp.set(key,c=[]);c.push({x,y,z,s,r:2.4*s+0.3,ph:x*0.11+z*0.07})});
     const sMat=kelpSway(new THREE.MeshStandardMaterial({vertexColors:true,roughness:0.5,side:THREE.DoubleSide}),{H:3.5,lean:0.5,swing:0.5,flut:0.16,glow:0.3});
     plants(sugarKelpGeo,3,sMat,many(90,170),2,90*SPREAD,[0xffffff,0xf0d8a0,0xe0c890],[0.7,1.3],[40],(x,z)=>inGrove(x,z,-0.2));
     const gMat=kelpSway(new THREE.MeshStandardMaterial({vertexColors:true,roughness:0.6,side:THREE.DoubleSide}),{H:1.6,lean:0.35,swing:0.22,flut:0.05,glow:0.18});
@@ -1150,15 +1181,16 @@ vKH=clamp(hy/${o.H.toFixed(2)},0.,1.);}`);
     for(const tr of tri)for(const k of tr){pos.push(...pv[k]);c.copy(pale).lerp(dark,pv[k][1]>0.03?1:k>=5?0.6:0.15);col.push(c.r,c.g,c.b)}
     const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geo.setAttribute('color',new THREE.Float32BufferAttribute(col,3));geo.computeVertexNormals();
     const mat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:0.3,metalness:0.55,side:THREE.DoubleSide});mat.customProgramCacheKey=()=>'fish';
-    mat.onBeforeCompile=sh=>{sh.uniforms.time=skyU.time;sh.vertexShader='uniform float time;\n'+sh.vertexShader
-      .replace('#include <begin_vertex>','#include <begin_vertex>\nfloat fph=dot(instanceMatrix[3].xyz,vec3(3.1,5.7,2.3));float tk=clamp((.06-position.z)/.31,0.,1.);transformed.x+=sin(time*13.+fph-position.z*14.)*.05*tk*tk;')
-      .replace('#include <project_vertex>','vec4 mvPosition=instanceMatrix*vec4(transformed,1.);mvPosition.xyz+=vec3(sin(time*.53+fph)*.8,sin(time*.71+fph*1.9)*.3,sin(time*.37+fph*2.7)*.8);mvPosition=modelViewMatrix*mvPosition;gl_Position=projectionMatrix*mvPosition;')};
-    const nF=IS_TOUCH?70:150;
-    for(let k=0;k<many(4,7,0);k++){const im=new THREE.InstancedMesh(geo,mat,nF);
-      for(let i=0;i<nF;i++){const r=Math.pow(R(),0.6),a=R()*6.28,b=Math.acos(2*R()-1),s=(0.7+R()*0.6)*1.6;
-        p3.set(Math.sin(b)*Math.cos(a)*r*8,Math.cos(b)*r*3.5,Math.sin(b)*Math.sin(a)*r*11);qq.identity();sc.set(s,s,s);m4.compose(p3,qq,sc);im.setMatrixAt(i,m4)}
+    mat.onBeforeCompile=sh=>{sh.uniforms.time=skyU.time;sh.vertexShader='uniform float time;\nattribute float fph;\n'+sh.vertexShader
+      .replace('#include <begin_vertex>','#include <begin_vertex>\nfloat tk=clamp((.06-position.z)/.31,0.,1.);transformed.x+=sin(time*13.+fph-position.z*14.)*.05*tk*tk;')
+      .replace('#include <project_vertex>','vec4 mvPosition=instanceMatrix*vec4(transformed,1.);mvPosition.xyz+=vec3(sin(time*.53+fph)*.25,sin(time*.71+fph*1.9)*.15,sin(time*.37+fph*2.7)*.25);mvPosition=modelViewMatrix*mvPosition;gl_Position=projectionMatrix*mvPosition;')};
+    const nF=IS_TOUCH?70:150;geo.setAttribute('fph',new THREE.InstancedBufferAttribute(Float32Array.from({length:nF},()=>R()*60),1));
+    for(let k=0;k<many(4,7,0);k++){const im=new THREE.InstancedMesh(geo,mat,nF),o=new Float32Array(nF*3),fs=new Float32Array(nF);
+      for(let i=0;i<nF;i++){const r=Math.pow(R(),0.6),a=R()*6.28,b=Math.acos(2*R()-1);fs[i]=(0.7+R()*0.6)*1.6;
+        o.set([Math.sin(b)*Math.cos(a)*r*8,Math.cos(b)*r*3.5,Math.sin(b)*Math.sin(a)*r*11],i*3)}
+      im.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
       const i=R()*t.S|0,d=(R()<.5?-1:1)*(HALF_W+8+R()*30),ax=t.X[i]-t.TZ[i]*d,az=t.Z[i]+t.TX[i]*d;
-      im.frustumCulled=false;world.add(im);anim.schools.push({m:im,ax,az,ay:terrainH(ax,az)+3.5+R()*6,r1:16+R()*18,r2:12+R()*16,w:(R()<.5?-1:1)*(0.1+R()*0.06),ph:R()*6})}}
+      im.frustumCulled=false;world.add(im);anim.schools.push({m:im,o,fs,p:new Float32Array(nF*3),v:new Float32Array(nF*3),hd:new Float32Array(nF*3),stale:true,near:[],ax,az,ay:terrainH(ax,az)+3.5+R()*6,r1:16+R()*18,r2:12+R()*16,w:(R()<.5?-1:1)*(0.1+R()*0.06),ph:R()*6})}}
   // shafts of light from the surface, slanting along the sun and turned to face the eye
   function shafts(){const n=many(26,44,0),pos=[],sh=[],idx=[];
     for(let k=0;k<n;k++){const i=R()*t.S|0,d=(R()-.5)*2*(HALF_W+70),x=t.X[i]-t.TZ[i]*d+(R()-.5)*30,z=t.Z[i]+t.TX[i]*d+(R()-.5)*30,y=terrainH(x,z)-3,w=3+R()*8,ph=R()*60;
@@ -1749,8 +1781,7 @@ function frame(){
   for(const is of anim.islands)is.g.position.y=is.y+Math.sin(tn/1000*0.3+is.ph)*1.5;
   for(const a of anim.arches)a.m.emissiveIntensity=a.base*(0.8+0.25*Math.sin(tn/400+a.ph));
   for(const mo of anim.motes){mo.position.set(Math.round(camera.position.x/40)*40,camera.position.y-6,Math.round(camera.position.z/40)*40);mo.rotation.y=tn/1000*0.02}
-  for(const f of anim.schools){const at=(q,o)=>{const a=f.w*q+f.ph;o.set(f.ax+f.r1*Math.cos(a)+5*Math.sin(2.3*a),f.ay+1.5*Math.sin(q*0.21+f.ph),f.az+f.r2*Math.sin(a));return o};
-    const q=tn/1000;at(q,f.m.position);at(q+0.2,_v1);f.m.lookAt(_v1)}
+  stepSchools(tn/1000);
   sky.position.copy(camera.position);
   const fp=G.phase==='title'?cam.look.set((T.bounds.minX+T.bounds.maxX)/2,0,(T.bounds.minZ+T.bounds.maxZ)/2):(!G.me?(TV.focus?stOf(TV.focus).p:camera.position):stOf(G.me).p);
   sun.target.position.copy(fp);sun.position.copy(fp).addScaledVector(SUNDIR,150);
