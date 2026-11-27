@@ -42,6 +42,20 @@
 		"screenshot": "/screenshots/toys/bear-beat.webp"
 	},
 	{
+		"title": "Toys/bear-scare",
+		"caption": "Bear Scare",
+		"description": "A not-too-scary haunted house for small children: tap left or right to choose which way the bear turns at each corner, past candlelit corridors, cobwebs, spiders, bats and ghosts, with the odd jump scare and pots of honey to collect",
+		"route": "games/bear-scare",
+		"section": "games",
+		"url": "/games/bear-scare/",
+		"tags": "toy",
+		"text": "",
+		"category": "kids-games",
+		"tagline": "Help the bear find its way through a not-too-scary haunted house",
+		"theme-color": "#050307",
+		"screenshot": "/screenshots/games/bear-scare.webp"
+	},
+	{
 		"title": "Toys/blobbles",
 		"caption": "Blobbles",
 		"description": "Blobs of glass at your command",

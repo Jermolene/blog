@@ -13,6 +13,7 @@ Each toy's notes are in its `CLAUDE.md` or `HANDOVER.md`. Read them before makin
 | `shared` | | Code that the built toys share: `lan.js` (LAN play over WebRTC and QR codes), the vendored QR libraries, and `test/lan.mjs` |
 | `bowling-bear` | **Built** by `build.mjs` | Source (`src/index.html` and `src/bear-model.js`); notes; the original table-mode handover (`handover/`); the bear model (CC BY 4.0) and `tools/build_toy_model.py`, which writes `src/bear-model.js`; the handover's tests |
 | `bear-beat` | Edited in place | Notes; the bear model and `tools/build_toy_model.py`; tests |
+| `bear-scare` | Edited in place | Handover notes (wiring in the real bear is the first thing on its list) |
 | `trackaholic` | **Built** by `build.mjs` | Source (`src/index.html` and `src/car-model.js`); handover notes; the car model (CC BY 4.0) and `tools/build_car_model.py`, which writes `src/car-model.js`; `test/gameplay.mjs`, a headless test of the handling with simulated drivers, compared with a committed baseline |
 | `flowing-field` | Edited in place | Notes and `tools/render.mjs`, a headless render check. Its history, from its own repository, is merged into this one |
 | `animal-island`, `trundle-world` | Edited in place | Notes and checks |

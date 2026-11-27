@@ -203,6 +203,7 @@ const closeups = {
 	"games/animal-island": {clip: {x: 300, y: 170, width: 520, height: 520}},
 	"toys/arterial-britain": {clip: {x: 250, y: 290, width: 420, height: 420}},
 	"toys/bear-beat": {clip: {x: 390, y: 200, width: 420, height: 420}},
+	"games/bear-scare": {clip: {x: 0, y: 0, width: 1200, height: 800}},
 	"toys/blobbles": {clip: {x: 560, y: 100, width: 520, height: 520}},
 	"games/bowling-bear": {clip: {x: 440, y: 230, width: 420, height: 420}},
 	"games/catflap": {clip: {x: 560, y: 120, width: 580, height: 580}},
